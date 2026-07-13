@@ -1,0 +1,207 @@
+<main class="app-shell" [class.is-authenticated]="token">
+  <aside class="brand-rail">
+    <a class="brand" href="#top" aria-label="Academix home"><span class="brand-mark">A</span><span>academix</span></a>
+    <div class="rail-copy">
+      <span class="rail-kicker">Academic management</span>
+      <h1>Make every student count.</h1>
+      <p>One calm workspace for building and maintaining your student directory.</p>
+    </div>
+    <div class="rail-footer"><span class="secure-dot"></span>Secure administrator access</div>
+  </aside>
+
+  <section class="workspace" id="top">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">{{ token ? 'Student directory' : 'Administrator portal' }}</p>
+        <h2>{{ token ? 'Good to see you again.' : 'Welcome to Academix.' }}</h2>
+      </div>
+      <div class="session" *ngIf="token">
+        <div class="avatar">{{ initials }}</div>
+        <div class="session-copy"><strong>Administrator</strong><span>{{ loginForm.controls.email.value }}</span></div>
+        <button type="button" class="icon-button" (click)="logout()" aria-label="Log out" title="Log out">↗</button>
+      </div>
+    </header>
+
+    <p class="notice" *ngIf="message" [class.error]="messageType === 'error'">
+      <span>{{ messageType === 'success' ? '✓' : '!' }}</span>{{ message }}
+    </p>
+
+    <section class="login-layout" *ngIf="!token; else dashboard">
+      <article class="login-panel">
+        <div class="login-icon">⌁</div>
+        <p class="eyebrow">Sign in</p>
+        <h2>Your administration space</h2>
+        <p class="intro">Use your administrator credentials to manage student records.</p>
+        <form [formGroup]="loginForm" (ngSubmit)="login()">
+          <label>Email address<input type="email" formControlName="email" autocomplete="username" placeholder="name@school.edu"></label>
+          <label>Password<input type="password" formControlName="password" autocomplete="current-password" placeholder="Enter your password"></label>
+          <button type="submit" class="primary-button" [disabled]="loading">{{ loading ? 'Signing you in…' : 'Sign in to dashboard' }} <span>→</span></button>
+        </form>
+        <p class="login-help">Protected access for authorized academic staff.</p>
+      </article>
+      <div class="login-art"><span class="orbit orbit-one"></span><span class="orbit orbit-two"></span><div class="quote-mark">“</div><p>Education is the passport to the future.</p><span>— Malcolm X</span></div>
+    </section>
+
+    <ng-template #dashboard>
+      <section class="metrics">
+        <article class="metric-card"><span class="metric-icon purple">◉</span><div><span>Total students</span><strong>{{ studentCount }}</strong></div><small>In your directory</small></article>
+        <article class="metric-card"><span class="metric-icon amber">↗</span><div><span>Directory status</span><strong>Active</strong></div><small>Live from your API</small></article>
+        <article class="metric-card metric-tip"><span>Tip</span><p>Keep student IDs unique for a tidy, searchable directory.</p></article>
+      </section>
+
+      <section class="content-grid">
+        <article class="panel create-panel">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow">New record</p>
+          <h2>Add a student</h2>
+          <p>Creates the login account and student profile together.</p>
+        </div>
+      </div>
+
+      <form class="student-form" [formGroup]="studentForm" (ngSubmit)="createStudent()">
+        <label>First name<input formControlName="firstName" placeholder="e.g. Ines"></label>
+        <label>Last name<input formControlName="lastName" placeholder="e.g. Ben Salem"></label>
+        <label>National ID / CIN<input formControlName="cin" placeholder="12345678"></label>
+        <div class="generated-id"><span>Student ID</span><strong>Generated randomly</strong><small>Format: 001academix001</small></div>
+        <label>Email address<input type="email" formControlName="email" placeholder="student@school.edu"></label>
+        <label>Password<input [type]="passwordVisible ? 'text' : 'password'" formControlName="password"><button class="reveal" type="button" (click)="passwordVisible = !passwordVisible">{{ passwordVisible ? 'Hide' : 'Show' }}</button></label>
+        <label>Phone <span class="optional">Optional</span><input formControlName="phone" placeholder="+216 …"></label>
+        <label>Field of study<input formControlName="fieldOfStudy" placeholder="Computer Science"></label>
+        <label>Study level<input formControlName="studyLevel" placeholder="Year 1"></label>
+        <label>Photo URL <span class="optional">Optional</span><input formControlName="photoUrl" placeholder="https://…"></label>
+        <label class="wide">Address <span class="optional">Optional</span><input formControlName="address" placeholder="Campus or home address"></label>
+        <button type="submit" class="primary-button wide submit-button" [disabled]="loading">{{ loading ? 'Creating student…' : 'Create student' }} <span>→</span></button>
+      </form>
+        </article>
+
+  <section class="panel students-panel">
+    <div class="panel-head">
+      <div>
+          <p class="eyebrow">Directory</p>
+          <h2>Students <span class="count">{{ studentCount }}</span></h2>
+          <p>Search, review, and keep your academic records current.</p>
+      </div>
+      <div class="actions">
+        <div class="search-box"><span>⌕</span><input class="search" [(ngModel)]="query" (keyup.enter)="searchStudents()" placeholder="Search by name or student ID"></div>
+        <button type="button" class="ghost" [disabled]="loadingStudents" (click)="loadStudents()">{{ loadingStudents ? 'Loading…' : 'Refresh' }}</button>
+        <button type="button" class="primary-button search-button" [disabled]="loadingStudents" (click)="searchStudents()">Search</button>
+      </div>
+    </div>
+
+    <div class="student-cards" *ngIf="students.length; else emptyDirectory">
+      <article class="student-card" *ngFor="let student of students; trackBy: trackStudent">
+        <div class="student-card-head">
+          <div class="student-name">
+            <img *ngIf="student.photoUrl; else initials" [src]="student.photoUrl" [alt]="student.firstName + ' ' + student.lastName" class="student-photo">
+            <ng-template #initials><span class="student-avatar">{{ student.firstName[0] }}{{ student.lastName[0] }}</span></ng-template>
+            <div><h3>{{ student.firstName }} {{ student.lastName }}</h3><span class="id-pill">#{{ student.id }}</span></div>
+          </div>
+          <span class="field-pill">{{ student.fieldOfStudy }}</span>
+        </div>
+        <dl class="student-details">
+          <div><dt>Student ID</dt><dd>{{ student.studentIdentifier }}</dd></div>
+          <div><dt>Study level</dt><dd>{{ student.studyLevel }}</dd></div>
+          <div class="full-detail"><dt>Email</dt><dd>{{ student.email }}</dd></div>
+          <div *ngIf="student.phone"><dt>Phone</dt><dd>{{ student.phone }}</dd></div>
+        </dl>
+        <div class="card-actions">
+          <button type="button" class="ghost" (click)="startEditing(student)">Edit student</button>
+          <button type="button" class="text-action danger" (click)="requestDelete(student)">Delete</button>
+        </div>
+      </article>
+    </div>
+    <ng-template #emptyDirectory>
+      <div class="empty"><strong>{{ loadingStudents ? 'Loading your directory…' : 'No students found' }}</strong><span>{{ loadingStudents ? 'Please wait a moment.' : 'Create your first student record above.' }}</span></div>
+    </ng-template>
+  </section>
+      </section>
+
+      <section class="invoice-section">
+        <article class="panel invoice-create-panel">
+          <div class="panel-head"><div><p class="eyebrow">Billing</p><h2>Create invoice</h2><p>Issue school-fee invoices and record payment status.</p></div></div>
+          <form class="invoice-form" [formGroup]="invoiceForm" (ngSubmit)="createInvoice()">
+            <label class="wide">Student<div class="student-picker"><input [(ngModel)]="invoiceStudentQuery" [ngModelOptions]="{standalone: true}" placeholder="Type a student name or ID" autocomplete="off"><div class="student-suggestions" *ngIf="invoiceStudentSuggestions.length"><button type="button" *ngFor="let student of invoiceStudentSuggestions" (click)="selectInvoiceStudent(student)"><strong>{{ student.firstName }} {{ student.lastName }}</strong><span>{{ student.studentIdentifier }}</span></button></div></div></label>
+            <label>Amount (TND)<input type="number" min="0.001" step="0.001" formControlName="amount"></label>
+            <label>Issue date<input type="date" formControlName="issuedDate"></label>
+            <label>Payment status<select formControlName="status"><option value="UNPAID">Unpaid</option><option value="PAID">Paid</option></select></label>
+            <label>Payment method <span class="optional">Optional</span><select formControlName="paymentMethod"><option value="">Not recorded</option><option value="CASH">Cash</option><option value="CARD">Card</option><option value="BANK_TRANSFER">Bank transfer</option><option value="ONLINE">Online</option></select></label>
+            <button type="submit" class="primary-button wide" [disabled]="loading">{{ loading ? 'Creating…' : 'Create invoice' }} <span>→</span></button>
+          </form>
+        </article>
+        <article class="panel invoice-list-panel">
+          <div class="panel-head"><div><p class="eyebrow">Invoice history</p><h2>Recent invoices <span class="count">{{ invoices.length }}</span></h2></div><button type="button" class="ghost" (click)="loadInvoices()">Refresh</button></div>
+          <div class="invoice-filters"><button type="button" [class.active]="invoiceFilter === 'ALL'" (click)="invoiceFilter = 'ALL'">All</button><button type="button" [class.active]="invoiceFilter === 'PAID'" (click)="invoiceFilter = 'PAID'">Paid</button><button type="button" [class.active]="invoiceFilter === 'UNPAID'" (click)="invoiceFilter = 'UNPAID'">Unpaid</button></div>
+          <div class="invoice-cards" *ngIf="filteredInvoices.length; else emptyInvoices">
+            <article class="invoice-card" *ngFor="let invoice of filteredInvoices">
+              <div><span class="invoice-number">{{ invoice.invoiceNumber }}</span><strong>{{ invoice.studentName }}</strong><small>{{ invoice.studentIdentifier }} · {{ invoice.issuedDate }}</small></div>
+              <div class="invoice-amount"><span [class.paid]="invoice.status === 'PAID'">{{ invoice.status }}</span><strong>{{ invoice.amount | number:'1.3-3' }} TND</strong></div>
+              <div class="invoice-actions"><button type="button" class="text-action" (click)="printInvoice(invoice)">Print</button><button type="button" class="text-action" (click)="startEditingInvoice(invoice)">Edit</button><button type="button" class="text-action" *ngIf="invoice.status === 'UNPAID'" (click)="openPaymentMethodMenu(invoice)">Mark paid</button><button type="button" class="text-action danger" (click)="requestInvoiceDelete(invoice)">Delete</button></div>
+            </article>
+          </div>
+          <ng-template #emptyInvoices><div class="empty"><strong>No invoices yet</strong><span>Create the first invoice using the form.</span></div></ng-template>
+        </article>
+      </section>
+    </ng-template>
+  </section>
+</main>
+
+<div class="modal-backdrop" *ngIf="editingStudent">
+  <section class="modal" role="dialog" aria-modal="true" aria-labelledby="edit-title">
+    <div class="modal-head">
+      <div><p class="eyebrow">Student record</p><h2 id="edit-title">Edit student</h2></div>
+      <button type="button" class="close-button" (click)="cancelEditing()" aria-label="Close">×</button>
+    </div>
+    <div class="readonly-id"><span>Student ID</span><strong>{{ editingStudent.studentIdentifier }}</strong><small>Generated automatically and cannot be changed.</small></div>
+    <form class="student-form edit-form" [formGroup]="editForm" (ngSubmit)="updateStudent()">
+      <label>First name<input formControlName="firstName"></label>
+      <label>Last name<input formControlName="lastName"></label>
+      <label>National ID / CIN<input formControlName="cin"></label>
+      <label>Email address<input type="email" formControlName="email"></label>
+      <label>Phone <span class="optional">Optional</span><input formControlName="phone"></label>
+      <label>Field of study<input formControlName="fieldOfStudy"></label>
+      <label>Study level<input formControlName="studyLevel"></label>
+      <label>Photo URL <span class="optional">Optional</span><input formControlName="photoUrl"></label>
+      <label class="wide">Address <span class="optional">Optional</span><input formControlName="address"></label>
+      <div class="modal-actions wide">
+        <button type="button" class="ghost" (click)="cancelEditing()">Cancel</button>
+        <button type="submit" class="primary-button" [disabled]="loading">{{ loading ? 'Saving…' : 'Save changes' }}</button>
+      </div>
+    </form>
+  </section>
+</div>
+
+<div class="modal-backdrop" *ngIf="studentPendingDeletion">
+  <section class="modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-title">
+    <div class="warning-icon">!</div>
+    <p class="eyebrow">Permanent action</p>
+    <h2 id="delete-title">Delete {{ studentPendingDeletion.firstName }}?</h2>
+    <p>This removes the student profile and its login account. This action cannot be undone.</p>
+    <div class="modal-actions">
+      <button type="button" class="ghost" (click)="cancelDelete()">Cancel</button>
+      <button type="button" class="danger-button" [disabled]="loading" (click)="deleteStudent()">{{ loading ? 'Deleting…' : 'Delete student' }}</button>
+    </div>
+  </section>
+</div>
+
+<div class="modal-backdrop" *ngIf="editingInvoice">
+  <section class="modal" role="dialog" aria-modal="true" aria-labelledby="invoice-edit-title">
+    <div class="modal-head"><div><p class="eyebrow">Billing</p><h2 id="invoice-edit-title">Edit invoice</h2></div><button type="button" class="close-button" (click)="cancelInvoiceEditing()" aria-label="Close">×</button></div>
+    <div class="readonly-id"><span>Invoice number</span><strong>{{ editingInvoice.invoiceNumber }}</strong></div>
+    <form class="invoice-form" [formGroup]="editInvoiceForm" (ngSubmit)="updateInvoice()">
+      <label class="wide">Student<div class="student-picker"><input [(ngModel)]="editInvoiceStudentQuery" [ngModelOptions]="{standalone: true}" placeholder="Type a student name or ID" autocomplete="off"><div class="student-suggestions" *ngIf="editInvoiceStudentSuggestions.length"><button type="button" *ngFor="let student of editInvoiceStudentSuggestions" (click)="selectInvoiceStudent(student, true)"><strong>{{ student.firstName }} {{ student.lastName }}</strong><span>{{ student.studentIdentifier }}</span></button></div></div></label>
+      <label>Amount (TND)<input type="number" min="0.001" step="0.001" formControlName="amount"></label><label>Issue date<input type="date" formControlName="issuedDate"></label>
+      <label>Payment status<select formControlName="status"><option value="UNPAID">Unpaid</option><option value="PAID">Paid</option></select></label><label>Payment method<select formControlName="paymentMethod"><option value="">Not recorded</option><option value="CASH">Cash</option><option value="CARD">Card</option><option value="BANK_TRANSFER">Bank transfer</option><option value="ONLINE">Online</option></select></label>
+      <label class="wide">Payment date <span class="optional">For paid invoices</span><input type="date" formControlName="paidDate"></label>
+      <div class="modal-actions wide"><button type="button" class="ghost" (click)="cancelInvoiceEditing()">Cancel</button><button type="submit" class="primary-button" [disabled]="loading">{{ loading ? 'Saving…' : 'Save changes' }}</button></div>
+    </form>
+  </section>
+</div>
+
+<div class="modal-backdrop" *ngIf="invoicePendingDeletion">
+  <section class="modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="invoice-delete-title"><div class="warning-icon">!</div><p class="eyebrow">Permanent action</p><h2 id="invoice-delete-title">Delete this invoice?</h2><p>{{ invoicePendingDeletion.invoiceNumber }} will be permanently removed.</p><div class="modal-actions"><button type="button" class="ghost" (click)="cancelInvoiceDelete()">Cancel</button><button type="button" class="danger-button" [disabled]="loading" (click)="deleteInvoice()">{{ loading ? 'Deleting…' : 'Delete invoice' }}</button></div></section>
+</div>
+
+<div class="modal-backdrop" *ngIf="invoicePendingPayment">
+  <section class="modal payment-modal" role="dialog" aria-modal="true" aria-labelledby="payment-title"><div class="modal-head"><div><p class="eyebrow">Record payment</p><h2 id="payment-title">Mark invoice as paid</h2></div><button type="button" class="close-button" (click)="cancelPaymentMethodMenu()" aria-label="Close">×</button></div><p class="payment-copy">Select the method used to pay <strong>{{ invoicePendingPayment.invoiceNumber }}</strong>.</p><div class="payment-options"><button type="button" [class.active]="paymentMethod === 'CASH'" (click)="paymentMethod = 'CASH'">Cash</button><button type="button" [class.active]="paymentMethod === 'CARD'" (click)="paymentMethod = 'CARD'">Card</button><button type="button" [class.active]="paymentMethod === 'BANK_TRANSFER'" (click)="paymentMethod = 'BANK_TRANSFER'">Bank transfer</button><button type="button" [class.active]="paymentMethod === 'ONLINE'" (click)="paymentMethod = 'ONLINE'">Online</button></div><div class="modal-actions"><button type="button" class="ghost" (click)="cancelPaymentMethodMenu()">Cancel</button><button type="button" class="primary-button" [disabled]="loading || !paymentMethod" (click)="markInvoicePaid()">{{ loading ? 'Saving…' : 'Confirm payment' }}</button></div></section>
+</div>
