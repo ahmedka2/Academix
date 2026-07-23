@@ -13,8 +13,14 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 2MB
 server:
   port: ${SERVER_PORT:8080}
+  error:
+    include-message: always
 
 security:
   jwt:
@@ -27,3 +33,5 @@ app:
       full-name: ${ADMIN_FULL_NAME:Academix Admin}
       email: ${ADMIN_EMAIL:admin@academix.com}
       password: ${ADMIN_PASSWORD:admin12345}
+  uploads:
+    directory: ${UPLOADS_DIR:../front/public/profile_picture}

@@ -1,0 +1,88 @@
+<section class="metrics">
+  <article class="metric-card">
+    <span class="metric-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1.66 2.69 3 6 3s6-1.34 6-3v-5"/></svg></span>
+    <div><span>Total grades</span><strong>{{ totalGrades }}</strong></div><small>All time</small>
+  </article>
+  <article class="metric-card">
+    <span class="metric-icon success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></span>
+    <div><span>Overall average</span><strong>{{ overallAverage | number:'1.2-2' }}/20</strong></div><small>Weighted by coefficient</small>
+  </article>
+</section>
+
+<section class="content-grid">
+  <article class="panel create-panel">
+    <div class="panel-head">
+      <div>
+        <p class="eyebrow">New record</p>
+        <h2>Record a grade</h2>
+        <p>Enter a subject score for a student.</p>
+      </div>
+    </div>
+
+    <form class="grade-form" [formGroup]="gradeForm" (ngSubmit)="createGrade()">
+      <label class="wide">Student<div class="student-picker"><input [(ngModel)]="gradeStudentQuery" [ngModelOptions]="{standalone: true}" placeholder="Type a student name or ID" autocomplete="off"><div class="student-suggestions" *ngIf="gradeStudentSuggestions.length"><button type="button" *ngFor="let student of gradeStudentSuggestions" (click)="selectGradeStudent(student)"><strong>{{ student.firstName }} {{ student.lastName }}</strong><span>{{ student.studentIdentifier }}</span></button></div></div></label>
+      <label class="wide">Subject<input formControlName="subject" placeholder="e.g. Algorithms"></label>
+      <label>Score (/20)<input type="number" min="0" max="20" step="0.25" formControlName="score"></label>
+      <label>Coefficient<input type="number" min="0.1" max="10" step="0.5" formControlName="coefficient"></label>
+      <label>Semester<select formControlName="semester"><option value="S1">Semester 1</option><option value="S2">Semester 2</option></select></label>
+      <label>Academic year<input formControlName="academicYear" placeholder="2025-2026"></label>
+      <button type="submit" class="primary-button wide submit-button" [disabled]="loading">{{ loading ? 'Saving…' : 'Record grade' }} <span>→</span></button>
+    </form>
+  </article>
+
+  <section class="panel grades-panel">
+    <div class="panel-head">
+      <div>
+        <p class="eyebrow">History</p>
+        <h2>Grades <span class="count">{{ totalGrades }}</span></h2>
+        <p>Review and manage recorded grades.</p>
+      </div>
+      <button type="button" class="ghost" (click)="loadGrades()">Refresh</button>
+    </div>
+
+    <div class="semester-filters"><button type="button" [class.active]="semesterFilter === 'ALL'" (click)="semesterFilter = 'ALL'">All</button><button type="button" [class.active]="semesterFilter === 'S1'" (click)="semesterFilter = 'S1'">Semester 1</button><button type="button" [class.active]="semesterFilter === 'S2'" (click)="semesterFilter = 'S2'">Semester 2</button></div>
+
+    <div class="grade-cards" *ngIf="filteredGrades.length; else emptyGrades">
+      <article class="grade-card" *ngFor="let grade of filteredGrades">
+        <div><span class="subject-name">{{ grade.subject }}</span><strong>{{ grade.studentName }}</strong><small>{{ grade.studentIdentifier }} · {{ grade.semester === 'S1' ? 'Semester 1' : 'Semester 2' }} · {{ grade.academicYear }}</small></div>
+        <div class="grade-score">
+          <strong>{{ grade.score | number:'1.2-2' }}/20</strong>
+          <span class="stamp" [class.stamp-good]="grade.score >= 10" [class.stamp-bad]="grade.score < 10">{{ grade.score >= 10 ? 'Pass' : 'Fail' }}</span>
+          <span class="coef">Coef. {{ grade.coefficient }}</span>
+        </div>
+        <div class="grade-actions"><button type="button" class="text-action" (click)="startEditingGrade(grade)">Edit</button><button type="button" class="text-action danger" (click)="requestGradeDelete(grade)">Delete</button></div>
+      </article>
+    </div>
+    <ng-template #emptyGrades>
+      <div class="empty"><strong>No grades yet</strong><span>Record the first grade using the form.</span></div>
+    </ng-template>
+  </section>
+</section>
+
+<div class="modal-backdrop" *ngIf="editingGrade">
+  <section class="modal" role="dialog" aria-modal="true" aria-labelledby="grade-edit-title">
+    <div class="modal-head"><div><p class="eyebrow">History</p><h2 id="grade-edit-title">Edit grade</h2></div><button type="button" class="close-button" (click)="cancelGradeEditing()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg></button></div>
+    <form class="grade-form" [formGroup]="editGradeForm" (ngSubmit)="updateGrade()">
+      <label class="wide">Student<div class="student-picker"><input [(ngModel)]="editGradeStudentQuery" [ngModelOptions]="{standalone: true}" placeholder="Type a student name or ID" autocomplete="off"><div class="student-suggestions" *ngIf="editGradeStudentSuggestions.length"><button type="button" *ngFor="let student of editGradeStudentSuggestions" (click)="selectGradeStudent(student, true)"><strong>{{ student.firstName }} {{ student.lastName }}</strong><span>{{ student.studentIdentifier }}</span></button></div></div></label>
+      <label class="wide">Subject<input formControlName="subject"></label>
+      <label>Score (/20)<input type="number" min="0" max="20" step="0.25" formControlName="score"></label>
+      <label>Coefficient<input type="number" min="0.1" max="10" step="0.5" formControlName="coefficient"></label>
+      <label>Semester<select formControlName="semester"><option value="S1">Semester 1</option><option value="S2">Semester 2</option></select></label>
+      <label>Academic year<input formControlName="academicYear" placeholder="2025-2026"></label>
+      <div class="modal-actions wide"><button type="button" class="ghost" (click)="cancelGradeEditing()">Cancel</button><button type="submit" class="primary-button" [disabled]="loading">{{ loading ? 'Saving…' : 'Save changes' }}</button></div>
+    </form>
+  </section>
+</div>
+
+<div class="modal-backdrop" *ngIf="gradePendingDeletion">
+  <section class="modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="grade-delete-title">
+    <div class="warning-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div>
+    <p class="eyebrow">Permanent action</p>
+    <h2 id="grade-delete-title">Delete this grade?</h2>
+    <p>{{ gradePendingDeletion.subject }} for {{ gradePendingDeletion.studentName }} will be permanently removed.</p>
+    <div class="modal-actions">
+      <button type="button" class="ghost" (click)="cancelGradeDelete()">Cancel</button>
+      <button type="button" class="danger-button" [disabled]="loading" (click)="deleteGrade()">{{ loading ? 'Deleting…' : 'Delete grade' }}</button>
+    </div>
+  </section>
+</div>

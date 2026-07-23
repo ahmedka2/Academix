@@ -1,6 +1,7 @@
 package com.academix.student.entity;
 
 import com.academix.auth.entity.User;
+import com.academix.classroom.entity.SchoolClass;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -8,6 +9,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
@@ -53,8 +55,9 @@ public class Student {
 	@Column(nullable = false, length = 100)
 	private String fieldOfStudy;
 
-	@Column(nullable = false, length = 100)
-	private String studyLevel;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "class_id")
+	private SchoolClass schoolClass;
 
 	@Column(length = 500)
 	private String photoUrl;
@@ -72,7 +75,7 @@ public class Student {
 	}
 
 	public Student(User user, String firstName, String lastName, String cin, String studentIdentifier, String email,
-			String phone, String fieldOfStudy, String studyLevel, String photoUrl, String address) {
+			String phone, String fieldOfStudy, String photoUrl, String address) {
 		this.user = user;
 		this.firstName = firstName;
 		this.lastName = lastName;
@@ -81,7 +84,6 @@ public class Student {
 		this.email = email;
 		this.phone = phone;
 		this.fieldOfStudy = fieldOfStudy;
-		this.studyLevel = studyLevel;
 		this.photoUrl = photoUrl;
 		this.address = address;
 	}
@@ -170,12 +172,12 @@ public class Student {
 		this.fieldOfStudy = fieldOfStudy;
 	}
 
-	public String getStudyLevel() {
-		return studyLevel;
+	public SchoolClass getSchoolClass() {
+		return schoolClass;
 	}
 
-	public void setStudyLevel(String studyLevel) {
-		this.studyLevel = studyLevel;
+	public void setSchoolClass(SchoolClass schoolClass) {
+		this.schoolClass = schoolClass;
 	}
 
 	public String getPhotoUrl() {

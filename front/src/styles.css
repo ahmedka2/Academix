@@ -9,6 +9,158 @@ body {
 
 body {
   margin: 0;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: #f5f7fb;
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--surface-sunken);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: "Zilla Slab", Georgia, "Times New Roman", serif;
+  font-weight: 700;
+}
+
+:root {
+  /* Brand — registrar's desk: brass ink accent, stamp red for status/danger */
+  --accent:#a6772c;
+  --accent-dark:#7c5a22;
+  --accent-soft:#f1e6d2;
+
+  /* Neutrals — warm paper & ink, not cool corporate gray */
+  --ink:#201c16;
+  --muted:#6b6255;
+  --subtle:#9b9078;
+  --line:#e3dcc9;
+  --paper:#fffefc;
+  --surface-sunken:#f6f2e9;
+
+  /* Status */
+  --success:#3f6b4a;
+  --success-bg:#e7efe6;
+  --danger:#a63a2e;
+  --danger-bg:#f7e6e1;
+  --warning:#a5690e;
+  --warning-bg:#fbeeda;
+
+  /* Scale */
+  --radius-sm:6px;
+  --radius-md:10px;
+  --radius-lg:14px;
+  --shadow-sm:0 1px 2px rgba(38,30,18,.07);
+  --shadow-md:0 10px 24px rgba(38,30,18,.09);
+  --shadow-lg:0 26px 56px rgba(30,24,14,.22);
+}
+
+/* Signature: every section label reads as a gummed filing-tab, echoing the
+   sidebar's folder-tab notch — not decorative, this is the one label class
+   used at every "what drawer am I in" moment (topbar, panel, modal, login). */
+.eyebrow { display:inline-flex; align-items:center; gap:5px; margin:0 0 7px; padding:3px 9px 4px; color:var(--accent-dark); background:var(--accent-soft); border:1px solid #e6d5ac; border-radius:4px 4px 4px 0; box-shadow:0 1px 0 rgba(38,30,18,.05); font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:.62rem; font-weight:700; letter-spacing:.11em; text-transform:uppercase; }
+.mono { font-family:"IBM Plex Mono",ui-monospace,monospace; }
+
+/* Shared app chrome (used by both the login page and the authenticated shell) */
+.app-shell { min-height:100vh; display:grid; grid-template-columns:240px minmax(0,1fr); background:var(--surface-sunken); color:var(--ink); }
+.workspace { width:min(1240px,100%); min-height:100vh; box-sizing:border-box; padding:30px clamp(24px,4vw,56px) 54px; margin:0 auto; display:flex; flex-direction:column; }
+/* Routed feature components render as their own host element inside .workspace;
+   make that host transparent so its template's root sections become direct
+   flex children of .workspace (needed for the last section's flex:1 to work). */
+app-students, app-teachers, app-classes, app-my-classes, app-invoices, app-grades, app-absences, app-statistics, app-profile { display:contents; }
+.topbar { min-height:56px; display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:30px; gap:16px; }
+.topbar h2 { margin:6px 0 0; letter-spacing:-.02em; font-size:1.55rem; line-height:1.15; color:var(--ink); }
+
+/* Notice banner */
+.notice { display:flex; gap:10px; align-items:center; padding:11px 14px; margin:-14px 0 20px; color:var(--success); background:var(--success-bg); border:1px solid #cfe0cf; border-radius:var(--radius-sm); font-size:.85rem; }
+.notice-icon { border-radius:50%; background:var(--success); color:#fff; }
+.notice.error { color:var(--danger); background:var(--danger-bg); border-color:#e8c7bd; }
+.notice.error .notice-icon { background:var(--danger); }
+
+/* Shared form primitives */
+label { position:relative; display:grid; gap:6px; color:#463f31; font-size:.73rem; font-weight:650; }
+input, select, textarea { min-width:0; width:100%; padding:0 11px; color:var(--ink); font:inherit; font-size:.81rem; border:1px solid var(--line); border-radius:var(--radius-sm); background:#fff; outline:none; transition:border-color .15s, box-shadow .15s; }
+input, select { height:38px; }
+textarea { padding-top:9px; padding-bottom:9px; resize:vertical; }
+input::placeholder, textarea::placeholder { color:#a89d84; }
+input:focus, select:focus, textarea:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+.optional { color:var(--subtle); font-weight:500; margin-left:3px; }
+.wide { grid-column:1/-1; }
+
+/* Shared buttons */
+.primary-button,.ghost,.danger-button { border:0; border-radius:var(--radius-sm); height:38px; padding:0 14px; font:inherit; font-size:.76rem; font-weight:700; cursor:pointer; transition:background-color .15s, box-shadow .15s, transform .1s; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+.primary-button { color:#fff; background:var(--accent); box-shadow:var(--shadow-sm); }
+.primary-button:hover:not(:disabled) { background:var(--accent-dark); }
+.primary-button:active:not(:disabled) { transform:translateY(1px); }
+.primary-button svg { width:15px; height:15px; }
+.primary-button:disabled,.ghost:disabled,.danger-button:disabled { opacity:.5; cursor:not-allowed; }
+.ghost { color:#463f31; background:#ece4d2; }
+.ghost:hover:not(:disabled) { background:#e2d8c0; }
+.danger-button { color:#fff; background:var(--danger); }
+.danger-button:hover:not(:disabled) { background:#8c2f25; }
+.text-action { padding:3px 5px; border:0; background:transparent; color:var(--accent); font:inherit; font-size:.72rem; font-weight:700; cursor:pointer; border-radius:6px; }
+.text-action:hover { background:var(--accent-soft); }
+.text-action.danger { color:var(--danger); }
+.text-action.danger:hover { background:var(--danger-bg); }
+
+/* Shared metric cards (dashboard-style stat tiles, reused across feature pages) */
+.metrics { display:grid; grid-template-columns:1fr 1fr 1.12fr; gap:16px; margin-bottom:18px; }
+.metric-card { min-height:104px; padding:19px; display:flex; align-items:center; gap:12px; background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); }
+.metric-card>div { display:grid; gap:3px; }
+.metric-card span:not(.metric-icon) { color:var(--muted); font-size:.72rem; }
+.metric-card strong { font-family:"Zilla Slab",serif; font-size:1.32rem; letter-spacing:-.02em; }
+.metric-card small { color:var(--subtle); font-size:.67rem; margin-left:auto; align-self:flex-end; }
+.metric-icon { width:36px; height:36px; display:grid; place-items:center; border-radius:var(--radius-sm); }
+.metric-icon svg { width:18px; height:18px; }
+.metric-icon.purple { color:var(--accent); background:var(--accent-soft); }
+.metric-icon.success { color:var(--success); background:var(--success-bg); }
+.metric-icon.warning { color:var(--warning); background:var(--warning-bg); }
+
+/* Shared panel chrome */
+.panel { background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-lg); padding:24px; box-shadow:var(--shadow-sm); }
+.panel-head { display:flex; justify-content:space-between; gap:15px; align-items:flex-start; margin-bottom:22px; }
+.panel-head h2 { margin:0; font-size:1.24rem; letter-spacing:-.02em; color:var(--ink); }
+.panel-head p:not(.eyebrow) { margin:6px 0 0; color:var(--muted); font-size:.78rem; }
+.count { display:inline-grid; place-items:center; vertical-align:middle; width:22px; height:22px; margin-left:6px; border-radius:50%; color:var(--accent); background:var(--accent-soft); font-family:"IBM Plex Mono",monospace; font-size:.64rem; font-weight:700; }
+.empty { min-height:180px; height:100%; display:grid; place-items:center; text-align:center; }
+.empty strong,.empty span { display:block; }
+.empty strong { color:#443d2f; margin-bottom:5px; font-size:.86rem; }
+.empty span { color:var(--subtle); font-size:.75rem; }
+
+/* Shared modal system */
+.modal-backdrop { position:fixed; z-index:10; inset:0; display:grid; place-items:center; padding:20px; background:rgba(28,22,14,.55); backdrop-filter:blur(3px); }
+.modal { width:min(660px,100%); max-height:calc(100vh - 40px); overflow:auto; padding:26px; border-radius:var(--radius-lg); background:#fff; box-shadow:var(--shadow-lg); }
+.modal-head { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:18px; }
+.modal h2 { margin:6px 0 0; font-size:1.32rem; letter-spacing:-.02em; }
+.close-button { display:grid; place-items:center; width:30px; height:30px; border:0; border-radius:var(--radius-sm); background:#ece4d2; color:#544c3c; cursor:pointer; }
+.close-button svg { width:15px; height:15px; }
+.readonly-id { display:grid; gap:3px; padding:11px 13px; margin-bottom:18px; border-radius:var(--radius-sm); color:#443d2f; background:var(--surface-sunken); border:1px solid var(--line); }
+.readonly-id span { color:var(--subtle); font-family:"IBM Plex Mono",monospace; font-size:.63rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
+.readonly-id strong { color:var(--accent-dark); font-family:"IBM Plex Mono",monospace; font-size:.85rem; }
+.readonly-id small { color:var(--subtle); font-size:.7rem; }
+.edit-form { padding-top:2px; }
+.modal-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:6px; }
+.confirm-modal { width:min(400px,100%); text-align:center; }
+.confirm-modal>p:not(.eyebrow) { margin:12px auto 20px; max-width:300px; color:var(--muted); font-size:.83rem; line-height:1.5; }
+.confirm-modal .modal-actions { justify-content:center; }
+.warning-icon { width:42px; height:42px; display:grid; place-items:center; margin:0 auto 15px; border-radius:50%; color:var(--danger); background:var(--danger-bg); }
+.warning-icon svg { width:20px; height:20px; }
+
+/* Signature: rubber-stamp status badge — reused wherever a record has a real
+   pass/fail or paid/unpaid state (invoices, grades). Not decorative — only
+   used for genuine status fields. */
+.stamp { position:relative; display:inline-flex; align-items:center; gap:5px; padding:4px 9px 3px; border:1.5px solid currentColor; border-radius:3px; color:var(--accent); font-family:"IBM Plex Mono",monospace; font-size:.6rem; font-weight:700; letter-spacing:.09em; text-transform:uppercase; transform:rotate(-3deg); white-space:nowrap; }
+.stamp::after { content:""; position:absolute; inset:2px; border:1px solid currentColor; border-radius:2px; opacity:.5; }
+.stamp.stamp-good { color:var(--success); }
+.stamp.stamp-bad { color:var(--danger); }
+
+@media(max-width:1100px){
+  .app-shell { grid-template-columns:200px minmax(0,1fr); }
+  .metrics { grid-template-columns:1fr 1fr; }
+}
+@media(max-width:760px){
+  .workspace { padding:22px 16px 35px; }
+  .topbar { margin-bottom:24px; align-items:center; }
+  .topbar h2 { font-size:1.32rem; }
+  .panel { padding:19px 16px; }
+  .panel-head { flex-direction:column; }
+  .notice { margin-top:-8px; }
+  .metrics { grid-template-columns:1fr; gap:10px; }
+  .metric-card { min-height:74px; }
 }

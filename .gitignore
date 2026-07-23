@@ -3,3 +3,5 @@ target/
 .vscode/
 *.log
 .env
+CLAUDE.md
+front/public/profile_picture/

@@ -1,0 +1,45 @@
+<div class="donut-wrap" #wrap>
+  <svg [attr.viewBox]="'0 0 ' + size + ' ' + size" [attr.width]="size" [attr.height]="size" class="donut-svg">
+    <circle
+      *ngFor="let segment of segments(); let i = index"
+      [attr.cx]="size / 2" [attr.cy]="size / 2" [attr.r]="radius"
+      fill="none"
+      [attr.stroke]="segment.color"
+      [attr.stroke-width]="hovered() === i ? strokeWidth + 3 : strokeWidth"
+      stroke-linecap="butt"
+      [attr.stroke-dasharray]="segment.dashArray"
+      [attr.stroke-dashoffset]="segment.dashOffset"
+      [attr.transform]="'rotate(-90 ' + (size / 2) + ' ' + (size / 2) + ')'"
+      class="donut-segment"
+      tabindex="0"
+      role="img"
+      [attr.aria-label]="segment.label + ': ' + segment.value"
+      (pointerenter)="onEnter($event, i)"
+      (pointermove)="onMove($event, i)"
+      (pointerleave)="onLeave()"
+      (focus)="onFocus(i)"
+      (blur)="onLeave()"
+    ></circle>
+  </svg>
+  <div class="donut-center">
+    <strong>{{ total() }}</strong>
+    <span>{{ centerLabel }}</span>
+  </div>
+  <div class="donut-tooltip" *ngIf="tooltip() as tip" [style.left.px]="tip.x" [style.top.px]="tip.y">
+    <strong>{{ tip.value }}</strong>
+    <span>{{ tip.label }} · {{ tip.pct | number:'1.0-1' }}%</span>
+  </div>
+</div>
+
+<ul class="donut-legend">
+  <li *ngFor="let segment of segments(); let i = index"
+      [class.active]="hovered() === i"
+      tabindex="0"
+      (pointerenter)="hovered.set(i)" (pointerleave)="hovered.set(null)"
+      (focus)="hovered.set(i)" (blur)="hovered.set(null)">
+    <span class="swatch" [style.background]="segment.color"></span>
+    <span class="legend-label">{{ segment.label }}</span>
+    <strong class="legend-value">{{ segment.value }}</strong>
+    <span class="legend-pct">{{ segment.pct | number:'1.0-1' }}%</span>
+  </li>
+</ul>

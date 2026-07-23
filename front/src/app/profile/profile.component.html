@@ -1,0 +1,165 @@
+<section class="metrics">
+  <article class="metric-card">
+    <span class="metric-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+    <div><span>Class</span><strong>{{ profile?.className || 'Unassigned' }}</strong></div><small>{{ profile?.fieldOfStudy }}</small>
+  </article>
+  <article class="metric-card">
+    <span class="metric-icon success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></span>
+    <div><span>Overall average</span><strong>{{ overallAverage | number:'1.2-2' }}/20</strong></div><small>Weighted by coefficient</small>
+  </article>
+  <article class="metric-card">
+    <span class="metric-icon" [class.warning]="overThreshold" [class.purple]="!overThreshold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span>
+    <div><span>Unjustified absences</span><strong>{{ unjustifiedCount }}</strong></div><small>{{ overThreshold ? 'Above the alert threshold' : 'Within the alert threshold' }}</small>
+  </article>
+  <article class="metric-card">
+    <span class="metric-icon" [class.warning]="outstandingAmount > 0" [class.success]="outstandingAmount === 0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l3 3v17l-3-2-3 2-3-2-3 2V2Z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg></span>
+    <div><span>Outstanding balance</span><strong>{{ outstandingAmount | number:'1.3-3' }} TND</strong></div><small>{{ outstandingAmount > 0 ? 'Payment due' : 'All settled' }}</small>
+  </article>
+</section>
+
+<section class="profile-grid">
+  <article class="panel profile-panel">
+    <div class="panel-head">
+      <div>
+        <p class="eyebrow">Identity</p>
+        <h2>My profile</h2>
+        <p>Your academic record on file.</p>
+      </div>
+      <button type="button" class="ghost" [disabled]="loadingProfile" (click)="loadProfile()">{{ loadingProfile ? 'Loading…' : 'Refresh' }}</button>
+    </div>
+
+    <div class="profile-summary" *ngIf="profile; else emptyProfile">
+      <div class="profile-name">
+        <div class="photo-wrap">
+          <img *ngIf="profile.photoUrl; else initials" [src]="profile.photoUrl" [alt]="profile.firstName + ' ' + profile.lastName" class="profile-photo">
+          <ng-template #initials><span class="profile-avatar">{{ profile.firstName[0] }}{{ profile.lastName[0] }}</span></ng-template>
+          <label class="photo-upload" [class.uploading]="uploadingPhoto" title="Change photo">
+            <input type="file" accept="image/jpeg,image/png,image/webp" [disabled]="uploadingPhoto" (change)="onPhotoSelected($event)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/></svg>
+          </label>
+        </div>
+        <div><h3>{{ profile.firstName }} {{ profile.lastName }}</h3><span class="id-pill">{{ profile.studentIdentifier }}</span></div>
+      </div>
+      <dl class="profile-details">
+        <div><dt>CIN</dt><dd>{{ profile.cin }}</dd></div>
+        <div><dt>Field of study</dt><dd>{{ profile.fieldOfStudy }}</dd></div>
+        <div><dt>Class</dt><dd>{{ profile.className || 'Unassigned' }}</dd></div>
+        <div class="full-detail"><dt>Email</dt><dd>{{ profile.email }}</dd></div>
+        <div class="full-detail">
+          <dt>Phone</dt>
+          <dd *ngIf="!editingPhone" class="phone-view">{{ profile.phone || 'Not set' }} <button type="button" class="text-action" (click)="startEditingPhone()">Edit</button></dd>
+          <dd *ngIf="editingPhone" class="phone-edit">
+            <input [(ngModel)]="phoneDraft" name="phoneDraft" placeholder="e.g. +216 12 345 678">
+            <button type="button" class="ghost" (click)="cancelEditingPhone()">Cancel</button>
+            <button type="button" class="primary-button" [disabled]="savingPhone" (click)="savePhone()">{{ savingPhone ? 'Saving…' : 'Save' }}</button>
+          </dd>
+        </div>
+        <div class="full-detail" *ngIf="profile.address"><dt>Address</dt><dd>{{ profile.address }}</dd></div>
+      </dl>
+    </div>
+    <ng-template #emptyProfile>
+      <div class="empty"><strong>{{ loadingProfile ? 'Loading your profile…' : 'Profile unavailable' }}</strong><span>{{ loadingProfile ? 'Please wait a moment.' : 'Contact administration if this looks wrong.' }}</span></div>
+    </ng-template>
+  </article>
+
+  <div class="profile-secondary">
+    <section class="panel grades-panel">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow">Academics</p>
+          <h2>My grades <span class="count">{{ grades().length }}</span></h2>
+          <p>Read-only view of your recorded grades.</p>
+        </div>
+        <button type="button" class="ghost" [disabled]="loadingGrades" (click)="loadGrades()">{{ loadingGrades ? 'Loading…' : 'Refresh' }}</button>
+      </div>
+
+      <div class="semester-filters"><button type="button" [class.active]="semesterFilter === 'ALL'" (click)="semesterFilter = 'ALL'">All</button><button type="button" [class.active]="semesterFilter === 'S1'" (click)="semesterFilter = 'S1'">Semester 1</button><button type="button" [class.active]="semesterFilter === 'S2'" (click)="semesterFilter = 'S2'">Semester 2</button></div>
+
+      <div class="grade-cards" *ngIf="filteredGrades.length; else emptyGrades">
+        <article class="grade-card" *ngFor="let grade of filteredGrades">
+          <div><strong class="subject-name">{{ grade.subject }}</strong><small>{{ grade.semester === 'S1' ? 'Semester 1' : 'Semester 2' }} · {{ grade.academicYear }}</small></div>
+          <div class="grade-score">
+            <strong>{{ grade.score | number:'1.2-2' }}/20</strong>
+            <span class="stamp" [class.stamp-good]="grade.score >= 10" [class.stamp-bad]="grade.score < 10">{{ grade.score >= 10 ? 'Pass' : 'Fail' }}</span>
+            <span class="coef">Coef. {{ grade.coefficient }}</span>
+          </div>
+        </article>
+      </div>
+      <ng-template #emptyGrades>
+        <div class="empty"><strong>{{ loadingGrades ? 'Loading your grades…' : 'No grades yet' }}</strong><span>{{ loadingGrades ? 'Please wait a moment.' : 'Your teachers haven\'t recorded any grades yet.' }}</span></div>
+      </ng-template>
+    </section>
+
+    <section class="panel absences-panel">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow">Attendance</p>
+          <h2>My absences <span class="count">{{ absences().length }}</span></h2>
+          <p>Justify an absence or check its review status.</p>
+        </div>
+        <button type="button" class="ghost" [disabled]="loadingAbsences" (click)="loadAbsences()">{{ loadingAbsences ? 'Loading…' : 'Refresh' }}</button>
+      </div>
+
+      <div class="absence-cards" *ngIf="absences().length; else emptyAbsences">
+        <article class="absence-card" *ngFor="let absence of absences()">
+          <div class="absence-card-head">
+            <div>
+              <strong class="subject-name">{{ absence.subject }}</strong>
+              <small>{{ absence.date }}</small>
+            </div>
+            <span class="stamp" [class.stamp-bad]="absence.status === 'UNJUSTIFIED' || absence.status === 'REJECTED'" [class.stamp-good]="absence.status === 'JUSTIFIED'">{{ absence.status === 'UNJUSTIFIED' ? 'Unjustified' : absence.status === 'PENDING_JUSTIFICATION' ? 'Pending review' : absence.status === 'JUSTIFIED' ? 'Justified' : 'Rejected' }}</span>
+          </div>
+          <p class="absence-comment" *ngIf="absence.comment">{{ absence.comment }}</p>
+          <p class="absence-justification" *ngIf="absence.justification"><strong>Your justification:</strong> {{ absence.justification }}</p>
+          <div class="card-actions" *ngIf="canJustify(absence)">
+            <button type="button" class="ghost" (click)="startJustifying(absence)">{{ absence.status === 'REJECTED' ? 'Resubmit justification' : 'Justify' }}</button>
+          </div>
+        </article>
+      </div>
+      <ng-template #emptyAbsences>
+        <div class="empty"><strong>{{ loadingAbsences ? 'Loading your absences…' : 'No absences recorded' }}</strong><span>{{ loadingAbsences ? 'Please wait a moment.' : 'Nothing to justify right now.' }}</span></div>
+      </ng-template>
+    </section>
+
+    <section class="panel invoices-panel">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow">Billing</p>
+          <h2>My invoices <span class="count">{{ invoices().length }}</span></h2>
+          <p>Read-only view of your school-fee invoices.</p>
+        </div>
+        <button type="button" class="ghost" [disabled]="loadingInvoices" (click)="loadInvoices()">{{ loadingInvoices ? 'Loading…' : 'Refresh' }}</button>
+      </div>
+
+      <div class="invoice-cards" *ngIf="invoices().length; else emptyInvoices">
+        <article class="invoice-card" *ngFor="let invoice of invoices()">
+          <div><span class="invoice-number">{{ invoice.invoiceNumber }}</span><small>{{ invoice.issuedDate }}</small></div>
+          <div class="invoice-amount">
+            <span class="stamp" [class.stamp-good]="invoice.status === 'PAID'" [class.stamp-bad]="invoice.status !== 'PAID'">{{ invoice.status }}</span>
+            <strong>{{ invoice.amount | number:'1.3-3' }} TND</strong>
+          </div>
+        </article>
+      </div>
+      <ng-template #emptyInvoices>
+        <div class="empty"><strong>{{ loadingInvoices ? 'Loading your invoices…' : 'No invoices yet' }}</strong><span>{{ loadingInvoices ? 'Please wait a moment.' : 'Nothing has been billed to your account yet.' }}</span></div>
+      </ng-template>
+    </section>
+  </div>
+</section>
+
+<div class="modal-backdrop" *ngIf="justifyTarget">
+  <section class="modal" role="dialog" aria-modal="true" aria-labelledby="justify-title">
+    <div class="modal-head">
+      <div><p class="eyebrow">Attendance</p><h2 id="justify-title">Justify absence</h2></div>
+      <button type="button" class="close-button" (click)="cancelJustifying()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg></button>
+    </div>
+    <p>{{ justifyTarget.subject }} on {{ justifyTarget.date }}</p>
+    <form (ngSubmit)="submitJustification()">
+      <label class="wide">Justification<textarea rows="4" [(ngModel)]="justificationText" name="justificationText" placeholder="Explain the reason for this absence"></textarea></label>
+      <div class="modal-actions wide">
+        <button type="button" class="ghost" (click)="cancelJustifying()">Cancel</button>
+        <button type="submit" class="primary-button">Submit for review</button>
+      </div>
+    </form>
+  </section>
+</div>

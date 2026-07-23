@@ -1,0 +1,16 @@
+.classes-panel { min-width:0; flex:1 1 auto; }
+.class-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:13px; }
+.class-card { min-width:0; padding:16px; border:1px solid var(--line); border-radius:var(--radius-md); background:var(--paper); transition:box-shadow .18s; }
+.class-card:hover { box-shadow:var(--shadow-md); }
+.class-card-head { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:11px; }
+.class-card h3 { margin:0 0 5px; color:#2c2618; font-size:.9rem; letter-spacing:-.01em; }
+.level-pill { padding:3px 7px; border-radius:6px; color:var(--accent-dark); background:var(--accent-soft); font-family:"IBM Plex Mono",monospace; font-size:.62rem; font-weight:600; }
+.capacity-pill { flex:0 0 auto; padding:4px 8px; border-radius:6px; color:var(--muted); background:var(--surface-sunken); font-family:"IBM Plex Mono",monospace; font-size:.68rem; font-weight:700; white-space:nowrap; }
+.subject-line { margin:0 0 12px; color:#544c3c; font-size:.78rem; font-weight:600; }
+.card-actions { display:flex; align-items:center; padding-top:12px; border-top:1px solid var(--line); }
+.card-actions .ghost { height:31px; font-size:.7rem; }
+
+.roster-modal .roster-list { display:grid; gap:6px; max-height:340px; overflow-y:auto; }
+.roster-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 12px; border:1px solid var(--line); border-radius:var(--radius-sm); }
+.student-name { color:#2c2618; font-size:.78rem; }
+.student-id { color:var(--subtle); font-family:"IBM Plex Mono",monospace; font-size:.66rem; }

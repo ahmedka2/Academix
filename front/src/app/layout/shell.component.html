@@ -1,0 +1,71 @@
+<main class="app-shell" [class.collapsed]="collapsed()">
+  <aside class="sidebar">
+    <div class="sidebar-head">
+      <a class="brand" [routerLink]="homeRoute()" aria-label="Academix home"><span class="brand-mark">A</span><span class="brand-name">academix</span></a>
+    </div>
+
+    <nav class="side-nav">
+      <a *ngIf="canSeeStudents()" routerLink="/students" routerLinkActive="active" title="Students">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span class="side-nav-label">Students</span>
+      </a>
+      <a *ngIf="canSeeTeachers()" routerLink="/teachers" routerLinkActive="active" title="Teachers">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span class="side-nav-label">Teachers</span>
+      </a>
+      <a *ngIf="canSeeClasses()" routerLink="/classes" routerLinkActive="active" title="Classes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <span class="side-nav-label">Classes</span>
+      </a>
+      <a *ngIf="canSeeMyClasses()" routerLink="/my-classes" routerLinkActive="active" title="My classes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <span class="side-nav-label">My classes</span>
+      </a>
+      <a *ngIf="canSeeInvoices()" routerLink="/invoices" routerLinkActive="active" title="Invoices">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l3 3v17l-3-2-3 2-3-2-3 2V2Z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>
+        <span class="side-nav-label">Invoices</span>
+      </a>
+      <a *ngIf="canSeeGrades()" routerLink="/grades" routerLinkActive="active" title="Grades">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1.66 2.69 3 6 3s6-1.34 6-3v-5"/></svg>
+        <span class="side-nav-label">Grades</span>
+      </a>
+      <a *ngIf="canSeeAbsences()" routerLink="/absences" routerLinkActive="active" title="Absences">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        <span class="side-nav-label">Absences</span>
+      </a>
+      <a *ngIf="canSeeStatistics()" routerLink="/statistics" routerLinkActive="active" title="Statistics">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16v-4M12 16V8M17 16v-7"/></svg>
+        <span class="side-nav-label">Statistics</span>
+      </a>
+      <a *ngIf="canSeeProfile()" routerLink="/me" routerLinkActive="active" title="My profile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        <span class="side-nav-label">My profile</span>
+      </a>
+    </nav>
+
+    <button type="button" class="collapse-toggle" (click)="toggleCollapsed()" [attr.aria-label]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [class.flipped]="collapsed()"><path d="M15 18l-6-6 6-6"/></svg>
+      <span class="side-nav-label">Collapse</span>
+    </button>
+  </aside>
+
+  <section class="workspace" id="top">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">{{ pageTitle().eyebrow }}</p>
+        <h2>{{ pageTitle().title }}</h2>
+      </div>
+      <div class="session">
+        <div class="avatar">{{ initials() }}</div>
+        <div class="session-copy"><strong>{{ roleLabel() }}</strong><span>{{ user()?.email }}</span></div>
+        <button type="button" class="icon-button" (click)="logout()" aria-label="Log out" title="Log out">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <app-notification-banner></app-notification-banner>
+
+    <router-outlet></router-outlet>
+  </section>
+</main>

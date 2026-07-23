@@ -1,0 +1,94 @@
+<section class="metrics">
+  <article class="metric-card">
+    <span class="metric-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+    <div><span>Total teachers</span><strong>{{ teacherCount }}</strong></div><small>In your directory</small>
+  </article>
+  <article class="metric-card">
+    <span class="metric-icon success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>
+    <div><span>Directory status</span><strong>Active</strong></div><small>Live from your API</small>
+  </article>
+</section>
+
+<section class="content-grid">
+  <article class="panel create-panel">
+    <div class="panel-head">
+      <div>
+        <p class="eyebrow">New record</p>
+        <h2>Add a teacher</h2>
+        <p>Creates the login account for a teacher.</p>
+      </div>
+    </div>
+
+    <form class="teacher-form" [formGroup]="teacherForm" (ngSubmit)="createTeacher()">
+      <label class="wide">Full name<input formControlName="fullName" placeholder="e.g. Sami Trabelsi"></label>
+      <label class="wide">Email address<input type="email" formControlName="email" placeholder="teacher@school.edu"></label>
+      <label class="wide">Password<input [type]="passwordVisible ? 'text' : 'password'" formControlName="password"><button class="reveal" type="button" (click)="passwordVisible = !passwordVisible">{{ passwordVisible ? 'Hide' : 'Show' }}</button></label>
+      <button type="submit" class="primary-button wide submit-button" [disabled]="loading">{{ loading ? 'Creating teacher…' : 'Create teacher' }} <span>→</span></button>
+    </form>
+  </article>
+
+  <section class="panel students-panel">
+    <div class="panel-head">
+      <div>
+        <p class="eyebrow">Directory</p>
+        <h2>Teachers <span class="count">{{ teacherCount }}</span></h2>
+        <p>Review and manage teacher accounts.</p>
+      </div>
+      <div class="actions">
+        <div class="search-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input class="search" [(ngModel)]="query" placeholder="Search by name or email"></div>
+        <button type="button" class="ghost" [disabled]="loadingTeachers" (click)="loadTeachers()">{{ loadingTeachers ? 'Loading…' : 'Refresh' }}</button>
+      </div>
+    </div>
+
+    <div class="student-cards" *ngIf="filteredTeachers.length; else emptyDirectory">
+      <article class="student-card" *ngFor="let teacher of filteredTeachers; trackBy: trackTeacher">
+        <div class="student-card-head">
+          <div class="student-name">
+            <span class="student-avatar">{{ teacher.fullName[0] }}</span>
+            <div><h3>{{ teacher.fullName }}</h3><span class="id-pill">#{{ teacher.id }}</span></div>
+          </div>
+        </div>
+        <dl class="student-details">
+          <div class="full-detail"><dt>Email</dt><dd>{{ teacher.email }}</dd></div>
+        </dl>
+        <div class="card-actions">
+          <button type="button" class="ghost" (click)="startEditing(teacher)">Edit teacher</button>
+          <button type="button" class="text-action danger" (click)="requestDelete(teacher)">Delete</button>
+        </div>
+      </article>
+    </div>
+    <ng-template #emptyDirectory>
+      <div class="empty"><strong>{{ loadingTeachers ? 'Loading your directory…' : 'No teachers found' }}</strong><span>{{ loadingTeachers ? 'Please wait a moment.' : 'Create your first teacher account above.' }}</span></div>
+    </ng-template>
+  </section>
+</section>
+
+<div class="modal-backdrop" *ngIf="editingTeacher">
+  <section class="modal" role="dialog" aria-modal="true" aria-labelledby="edit-title">
+    <div class="modal-head">
+      <div><p class="eyebrow">Teacher record</p><h2 id="edit-title">Edit teacher</h2></div>
+      <button type="button" class="close-button" (click)="cancelEditing()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg></button>
+    </div>
+    <form class="teacher-form edit-form" [formGroup]="editForm" (ngSubmit)="updateTeacher()">
+      <label class="wide">Full name<input formControlName="fullName"></label>
+      <label class="wide">Email address<input type="email" formControlName="email"></label>
+      <div class="modal-actions wide">
+        <button type="button" class="ghost" (click)="cancelEditing()">Cancel</button>
+        <button type="submit" class="primary-button" [disabled]="loading">{{ loading ? 'Saving…' : 'Save changes' }}</button>
+      </div>
+    </form>
+  </section>
+</div>
+
+<div class="modal-backdrop" *ngIf="teacherPendingDeletion">
+  <section class="modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-title">
+    <div class="warning-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div>
+    <p class="eyebrow">Permanent action</p>
+    <h2 id="delete-title">Delete {{ teacherPendingDeletion.fullName }}?</h2>
+    <p>This removes the teacher's login account. This action cannot be undone.</p>
+    <div class="modal-actions">
+      <button type="button" class="ghost" (click)="cancelDelete()">Cancel</button>
+      <button type="button" class="danger-button" [disabled]="loading" (click)="deleteTeacher()">{{ loading ? 'Deleting…' : 'Delete teacher' }}</button>
+    </div>
+  </section>
+</div>

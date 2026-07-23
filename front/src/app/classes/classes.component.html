@@ -1,0 +1,142 @@
+<section class="metrics">
+  <article class="metric-card">
+    <span class="metric-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1.66 2.69 3 6 3s6-1.34 6-3v-5"/></svg></span>
+    <div><span>Levels</span><strong>{{ levels().length }}</strong></div><small>Academic years</small>
+  </article>
+  <article class="metric-card">
+    <span class="metric-icon success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M9 4v18"/></svg></span>
+    <div><span>Classes</span><strong>{{ classes().length }}</strong></div><small>Across all levels</small>
+  </article>
+</section>
+
+<section class="panel levels-panel">
+  <div class="panel-head">
+    <div>
+      <p class="eyebrow">Structure</p>
+      <h2>Levels</h2>
+      <p>Add the academic levels this school offers, then create classes under each.</p>
+    </div>
+  </div>
+
+  <div class="level-chips">
+    <div class="level-chip" *ngFor="let level of levels()">
+      <ng-container *ngIf="editingLevel?.id !== level.id">
+        <span class="level-name">{{ level.name }}</span>
+        <span class="level-count">{{ level.classCount }} class{{ level.classCount === 1 ? '' : 'es' }}</span>
+        <button type="button" class="chip-action" (click)="startEditingLevel(level)" aria-label="Rename level">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+        </button>
+        <button type="button" class="chip-action danger" (click)="deleteLevel(level)" aria-label="Delete level">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
+        </button>
+      </ng-container>
+      <ng-container *ngIf="editingLevel?.id === level.id">
+        <input class="level-edit-input" [(ngModel)]="editingLevelName" [ngModelOptions]="{standalone: true}" (keyup.enter)="saveLevel()">
+        <button type="button" class="chip-action" (click)="saveLevel()" aria-label="Save">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </button>
+        <button type="button" class="chip-action" (click)="cancelEditingLevel()" aria-label="Cancel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
+        </button>
+      </ng-container>
+    </div>
+
+    <div class="level-chip level-chip-new">
+      <input [(ngModel)]="newLevelName" [ngModelOptions]="{standalone: true}" placeholder="New level, e.g. 1st Year" (keyup.enter)="createLevel()">
+      <button type="button" class="primary-button" (click)="createLevel()">Add</button>
+    </div>
+  </div>
+</section>
+
+<section class="content-grid">
+  <article class="panel create-panel">
+    <div class="panel-head">
+      <div>
+        <p class="eyebrow">New record</p>
+        <h2>Add a class</h2>
+        <p>Creates a class under one of your levels (max 20 students each).</p>
+      </div>
+    </div>
+
+    <form class="class-form" [formGroup]="classForm" (ngSubmit)="createClass()">
+      <label class="wide">Level<select formControlName="levelId"><option [ngValue]="0" disabled>Choose a level</option><option *ngFor="let level of levels()" [ngValue]="level.id">{{ level.name }}</option></select></label>
+      <label class="wide">Class name<input formControlName="name" placeholder="e.g. 5A"></label>
+      <button type="submit" class="primary-button wide submit-button" [disabled]="loading">{{ loading ? 'Creating class…' : 'Create class' }} <span>→</span></button>
+    </form>
+  </article>
+
+  <section class="panel classes-panel">
+    <div class="panel-head">
+      <div>
+        <p class="eyebrow">Directory</p>
+        <h2>Classes <span class="count">{{ classes().length }}</span></h2>
+        <p>Review capacity, assign teachers, and view rosters.</p>
+      </div>
+      <button type="button" class="ghost" (click)="loadClasses()">Refresh</button>
+    </div>
+
+    <div class="class-cards" *ngIf="classes().length; else emptyClasses">
+      <article class="class-card" *ngFor="let schoolClass of classes()">
+        <div class="class-card-head">
+          <div>
+            <h3>{{ schoolClass.name }}</h3>
+            <span class="level-pill">{{ schoolClass.levelName }}</span>
+          </div>
+          <span class="capacity-pill" [class.full]="schoolClass.studentCount >= schoolClass.capacity">{{ schoolClass.studentCount }}/{{ schoolClass.capacity }}</span>
+        </div>
+
+        <div class="assignment-pills">
+          <span class="assignment-pill" *ngFor="let assignment of schoolClass.teacherAssignments">
+            {{ assignment.teacherName }} · {{ assignment.subject }}
+            <button type="button" (click)="unassignTeacher(schoolClass, assignment.id)" aria-label="Unassign teacher">×</button>
+          </span>
+          <span class="empty-assignments" *ngIf="!schoolClass.teacherAssignments.length">No teachers assigned</span>
+        </div>
+
+        <div class="card-actions">
+          <button type="button" class="ghost" (click)="openAssign(schoolClass)">Assign teacher</button>
+          <button type="button" class="ghost" (click)="openRoster(schoolClass)">View roster</button>
+          <button type="button" class="text-action danger" (click)="deleteClass(schoolClass)">Delete</button>
+        </div>
+      </article>
+    </div>
+    <ng-template #emptyClasses>
+      <div class="empty"><strong>No classes yet</strong><span>Create your first class using the form.</span></div>
+    </ng-template>
+  </section>
+</section>
+
+<div class="modal-backdrop" *ngIf="assignTarget">
+  <section class="modal" role="dialog" aria-modal="true" aria-labelledby="assign-title">
+    <div class="modal-head">
+      <div><p class="eyebrow">{{ assignTarget.name }}</p><h2 id="assign-title">Assign a teacher</h2></div>
+      <button type="button" class="close-button" (click)="cancelAssign()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg></button>
+    </div>
+    <form class="assign-form" (ngSubmit)="submitAssign()">
+      <label>Teacher<select [(ngModel)]="assignTeacherId" name="assignTeacherId"><option [ngValue]="0" disabled>Choose a teacher</option><option *ngFor="let teacher of teachers(); trackBy: trackTeacher" [ngValue]="teacher.id">{{ teacher.fullName }}</option></select></label>
+      <label>Subject<input [(ngModel)]="assignSubject" name="assignSubject" placeholder="e.g. Mathematics"></label>
+      <div class="modal-actions">
+        <button type="button" class="ghost" (click)="cancelAssign()">Cancel</button>
+        <button type="submit" class="primary-button">Assign</button>
+      </div>
+    </form>
+  </section>
+</div>
+
+<div class="modal-backdrop" *ngIf="rosterTarget">
+  <section class="modal roster-modal" role="dialog" aria-modal="true" aria-labelledby="roster-title">
+    <div class="modal-head">
+      <div><p class="eyebrow">Roster</p><h2 id="roster-title">{{ rosterTarget.name }} <span class="count">{{ roster.length }}</span></h2></div>
+      <button type="button" class="close-button" (click)="closeRoster()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg></button>
+    </div>
+    <div class="roster-list" *ngIf="roster.length; else emptyRoster">
+      <div class="roster-row" *ngFor="let student of roster">
+        <span class="student-name">{{ student.firstName }} {{ student.lastName }}</span>
+        <span class="student-id">{{ student.studentIdentifier }}</span>
+      </div>
+    </div>
+    <ng-template #emptyRoster>
+      <div class="empty"><strong>{{ loadingRoster ? 'Loading roster…' : 'No students in this class yet' }}</strong><span>{{ loadingRoster ? 'Please wait a moment.' : 'Assign students to this class from the Students page.' }}</span></div>
+    </ng-template>
+  </section>
+</div>

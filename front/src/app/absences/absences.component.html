@@ -1,0 +1,110 @@
+<section class="metrics">
+  <article class="metric-card">
+    <span class="metric-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+    <div><span>Total absences</span><strong>{{ totalAbsences }}</strong></div><small>All time</small>
+  </article>
+  <article class="metric-card">
+    <span class="metric-icon warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span>
+    <div><span>Unjustified</span><strong>{{ unjustifiedCount }}</strong></div><small>Needs a justification</small>
+  </article>
+  <article class="metric-card">
+    <span class="metric-icon success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span>
+    <div><span>Pending review</span><strong>{{ pendingCount }}</strong></div><small>Awaiting admin decision</small>
+  </article>
+</section>
+
+<section class="content-grid">
+  <article class="panel create-panel">
+    <div class="panel-head">
+      <div>
+        <p class="eyebrow">New record</p>
+        <h2>Declare an absence</h2>
+        <p>Mark a student absent for a subject.</p>
+      </div>
+    </div>
+
+    <form class="absence-form" [formGroup]="absenceForm" (ngSubmit)="createAbsence()">
+      <label class="wide">Student<div class="student-picker"><input [(ngModel)]="absenceStudentQuery" [ngModelOptions]="{standalone: true}" placeholder="Type a student name or ID" autocomplete="off"><div class="student-suggestions" *ngIf="absenceStudentSuggestions.length"><button type="button" *ngFor="let student of absenceStudentSuggestions" (click)="selectAbsenceStudent(student)"><strong>{{ student.firstName }} {{ student.lastName }}</strong><span>{{ student.studentIdentifier }}</span></button></div></div></label>
+      <label class="wide">Subject<input formControlName="subject" placeholder="e.g. Algorithms"></label>
+      <label>Date<input type="date" formControlName="date"></label>
+      <label class="wide">Comment <span class="optional">Optional</span><input formControlName="comment" placeholder="Context for this absence"></label>
+      <button type="submit" class="primary-button wide submit-button" [disabled]="loading">{{ loading ? 'Saving…' : 'Declare absence' }} <span>→</span></button>
+    </form>
+  </article>
+
+  <section class="panel absences-panel">
+    <div class="panel-head">
+      <div>
+        <p class="eyebrow">Roll call</p>
+        <h2>Absences <span class="count">{{ totalAbsences }}</span></h2>
+        <p>Review, edit, and validate justifications.</p>
+      </div>
+      <button type="button" class="ghost" (click)="loadAbsences()">Refresh</button>
+    </div>
+
+    <div class="status-filters">
+      <button type="button" [class.active]="statusFilter === 'ALL'" (click)="statusFilter = 'ALL'">All</button>
+      <button type="button" [class.active]="statusFilter === 'UNJUSTIFIED'" (click)="statusFilter = 'UNJUSTIFIED'">Unjustified</button>
+      <button type="button" [class.active]="statusFilter === 'PENDING_JUSTIFICATION'" (click)="statusFilter = 'PENDING_JUSTIFICATION'">Pending</button>
+      <button type="button" [class.active]="statusFilter === 'JUSTIFIED'" (click)="statusFilter = 'JUSTIFIED'">Justified</button>
+      <button type="button" [class.active]="statusFilter === 'REJECTED'" (click)="statusFilter = 'REJECTED'">Rejected</button>
+    </div>
+
+    <div class="absence-cards" *ngIf="filteredAbsences.length; else emptyAbsences">
+      <article class="absence-card" *ngFor="let absence of filteredAbsences">
+        <div class="absence-card-head">
+          <div>
+            <span class="subject-name">{{ absence.subject }}</span>
+            <strong>{{ absence.studentName }}</strong>
+            <small>{{ absence.studentIdentifier }} · {{ absence.date }}</small>
+          </div>
+          <div class="absence-badges">
+            <span class="stamp" [class.stamp-bad]="absence.status === 'UNJUSTIFIED' || absence.status === 'REJECTED'" [class.stamp-good]="absence.status === 'JUSTIFIED'">{{ absence.status === 'UNJUSTIFIED' ? 'Unjustified' : absence.status === 'PENDING_JUSTIFICATION' ? 'Pending review' : absence.status === 'JUSTIFIED' ? 'Justified' : 'Rejected' }}</span>
+            <span class="threshold-pill" *ngIf="overThreshold(absence.studentId)">⚠ {{ unjustifiedCountFor(absence.studentId) }} unjustified</span>
+          </div>
+        </div>
+        <p class="absence-comment" *ngIf="absence.comment">{{ absence.comment }}</p>
+        <p class="absence-justification" *ngIf="absence.justification"><strong>Justification:</strong> {{ absence.justification }}</p>
+        <div class="card-actions">
+          <div class="card-actions-left" *ngIf="isAdmin() && absence.status === 'PENDING_JUSTIFICATION'">
+            <button type="button" class="ghost" (click)="approve(absence)">Approve</button>
+            <button type="button" class="text-action danger" (click)="reject(absence)">Reject</button>
+          </div>
+          <div class="card-actions-right">
+            <button type="button" class="ghost" (click)="startEditing(absence)">Edit</button>
+            <button type="button" class="text-action danger" (click)="requestDelete(absence)">Delete</button>
+          </div>
+        </div>
+      </article>
+    </div>
+    <ng-template #emptyAbsences>
+      <div class="empty"><strong>No absences found</strong><span>Declare the first absence using the form.</span></div>
+    </ng-template>
+  </section>
+</section>
+
+<div class="modal-backdrop" *ngIf="editingAbsence">
+  <section class="modal" role="dialog" aria-modal="true" aria-labelledby="absence-edit-title">
+    <div class="modal-head"><div><p class="eyebrow">Roll call</p><h2 id="absence-edit-title">Edit absence</h2></div><button type="button" class="close-button" (click)="cancelEditing()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg></button></div>
+    <form class="absence-form" [formGroup]="editAbsenceForm" (ngSubmit)="updateAbsence()">
+      <label class="wide">Student<div class="student-picker"><input [(ngModel)]="editAbsenceStudentQuery" [ngModelOptions]="{standalone: true}" placeholder="Type a student name or ID" autocomplete="off"><div class="student-suggestions" *ngIf="editAbsenceStudentSuggestions.length"><button type="button" *ngFor="let student of editAbsenceStudentSuggestions" (click)="selectAbsenceStudent(student, true)"><strong>{{ student.firstName }} {{ student.lastName }}</strong><span>{{ student.studentIdentifier }}</span></button></div></div></label>
+      <label class="wide">Subject<input formControlName="subject"></label>
+      <label>Date<input type="date" formControlName="date"></label>
+      <label class="wide">Comment <span class="optional">Optional</span><input formControlName="comment"></label>
+      <div class="modal-actions wide"><button type="button" class="ghost" (click)="cancelEditing()">Cancel</button><button type="submit" class="primary-button" [disabled]="loading">{{ loading ? 'Saving…' : 'Save changes' }}</button></div>
+    </form>
+  </section>
+</div>
+
+<div class="modal-backdrop" *ngIf="absencePendingDeletion">
+  <section class="modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="absence-delete-title">
+    <div class="warning-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div>
+    <p class="eyebrow">Permanent action</p>
+    <h2 id="absence-delete-title">Delete this absence?</h2>
+    <p>{{ absencePendingDeletion.subject }} for {{ absencePendingDeletion.studentName }} on {{ absencePendingDeletion.date }} will be permanently removed.</p>
+    <div class="modal-actions">
+      <button type="button" class="ghost" (click)="cancelDelete()">Cancel</button>
+      <button type="button" class="danger-button" [disabled]="loading" (click)="deleteAbsence()">{{ loading ? 'Deleting…' : 'Delete absence' }}</button>
+    </div>
+  </section>
+</div>

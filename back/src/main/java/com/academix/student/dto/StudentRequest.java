@@ -19,8 +19,7 @@ public record StudentRequest(
 		@Size(max = 30, message = "Phone must be at most 30 characters") String phone,
 		@NotBlank(message = "Field of study is required")
 		@Size(max = 100, message = "Field of study must be at most 100 characters") String fieldOfStudy,
-		@NotBlank(message = "Study level is required")
-		@Size(max = 100, message = "Study level must be at most 100 characters") String studyLevel,
+		Long classId,
 		@Size(max = 500, message = "Photo URL must be at most 500 characters") String photoUrl,
 		@Size(max = 500, message = "Address must be at most 500 characters") String address) {
 }

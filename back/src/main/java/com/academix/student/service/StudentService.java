@@ -3,9 +3,12 @@ package com.academix.student.service;
 import com.academix.auth.entity.Role;
 import com.academix.auth.entity.User;
 import com.academix.auth.repository.UserRepository;
+import com.academix.classroom.entity.SchoolClass;
+import com.academix.classroom.repository.SchoolClassRepository;
 import com.academix.student.dto.CreateStudentRequest;
 import com.academix.student.dto.StudentRequest;
 import com.academix.student.dto.StudentResponse;
+import com.academix.student.dto.StudentSelfUpdateRequest;
 import com.academix.student.entity.Student;
 import com.academix.student.repository.StudentRepository;
 import org.springframework.http.HttpStatus;
@@ -14,6 +17,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.security.SecureRandom;
@@ -30,12 +34,18 @@ public class StudentService {
 
 	private final StudentRepository studentRepository;
 	private final UserRepository userRepository;
+	private final SchoolClassRepository schoolClassRepository;
 	private final PasswordEncoder passwordEncoder;
+	private final PhotoStorageService photoStorageService;
 
-	public StudentService(StudentRepository studentRepository, UserRepository userRepository, PasswordEncoder passwordEncoder) {
+	public StudentService(StudentRepository studentRepository, UserRepository userRepository,
+			SchoolClassRepository schoolClassRepository, PasswordEncoder passwordEncoder,
+			PhotoStorageService photoStorageService) {
 		this.studentRepository = studentRepository;
 		this.userRepository = userRepository;
+		this.schoolClassRepository = schoolClassRepository;
 		this.passwordEncoder = passwordEncoder;
+		this.photoStorageService = photoStorageService;
 	}
 
 	@Transactional(readOnly = true)
@@ -67,9 +77,18 @@ public class StudentService {
 
 	@Transactional(readOnly = true)
 	public StudentResponse getCurrentStudent() {
-		String email = currentUsername();
-		Student student = studentRepository.findByEmailIgnoreCase(email)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Student profile not found"));
+		return toResponse(findCurrentStudent());
+	}
+
+	public StudentResponse updateOwnPhone(StudentSelfUpdateRequest request) {
+		Student student = findCurrentStudent();
+		student.setPhone(normalizeOptional(request.phone()));
+		return toResponse(student);
+	}
+
+	public StudentResponse updateOwnPhoto(MultipartFile file) {
+		Student student = findCurrentStudent();
+		student.setPhotoUrl(photoStorageService.store(student.getId(), file));
 		return toResponse(student);
 	}
 
@@ -104,9 +123,9 @@ public class StudentService {
 				email,
 				normalizeOptional(request.phone()),
 				normalizeRequired(request.fieldOfStudy()),
-				normalizeRequired(request.studyLevel()),
 				normalizeOptional(request.photoUrl()),
 				normalizeOptional(request.address()));
+		student.setSchoolClass(resolveClass(request.classId(), null));
 
 		Student savedStudent = studentRepository.save(student);
 		savedStudent.setStudentIdentifier(generateStudentIdentifier());
@@ -145,7 +164,7 @@ public class StudentService {
 		student.setEmail(email);
 		student.setPhone(normalizeOptional(request.phone()));
 		student.setFieldOfStudy(normalizeRequired(request.fieldOfStudy()));
-		student.setStudyLevel(normalizeRequired(request.studyLevel()));
+		student.setSchoolClass(resolveClass(request.classId(), id));
 		student.setPhotoUrl(normalizeOptional(request.photoUrl()));
 		student.setAddress(normalizeOptional(request.address()));
 		if (student.getUser() != null) {
@@ -171,7 +190,30 @@ public class StudentService {
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Student not found"));
 	}
 
+	private Student findCurrentStudent() {
+		return studentRepository.findByEmailIgnoreCase(currentUsername())
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Student profile not found"));
+	}
+
+	private SchoolClass resolveClass(Long classId, Long excludingStudentId) {
+		if (classId == null) {
+			return null;
+		}
+		SchoolClass schoolClass = schoolClassRepository.findById(classId)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Class not found"));
+
+		long occupied = studentRepository.countBySchoolClassId(classId);
+		boolean alreadyInThisClass = excludingStudentId != null && studentRepository.findById(excludingStudentId)
+				.map(existing -> existing.getSchoolClass() != null && existing.getSchoolClass().getId().equals(classId))
+				.orElse(false);
+		if (!alreadyInThisClass && occupied >= SchoolClass.CAPACITY) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "This class is full (" + SchoolClass.CAPACITY + " students)");
+		}
+		return schoolClass;
+	}
+
 	private StudentResponse toResponse(Student student) {
+		SchoolClass schoolClass = student.getSchoolClass();
 		return new StudentResponse(
 				student.getId(),
 				student.getUser() == null ? null : student.getUser().getId(),
@@ -182,7 +224,9 @@ public class StudentService {
 				student.getEmail(),
 				student.getPhone(),
 				student.getFieldOfStudy(),
-				student.getStudyLevel(),
+				schoolClass == null ? null : schoolClass.getId(),
+				schoolClass == null ? null : schoolClass.getName(),
+				schoolClass == null ? null : schoolClass.getLevel().getName(),
 				student.getPhotoUrl(),
 				student.getAddress(),
 				student.getCreatedAt(),

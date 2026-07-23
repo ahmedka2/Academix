@@ -1,0 +1,111 @@
+<div class="page-actions">
+  <button type="button" class="ghost" [disabled]="loading" (click)="loadStatistics()">{{ loading ? 'Loading…' : 'Refresh' }}</button>
+</div>
+
+<ng-container *ngIf="statistics() as stats; else loadingState">
+  <section class="metrics">
+    <article class="metric-card">
+      <span class="metric-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+      <div><span>Total students</span><strong>{{ stats.totalStudents }}</strong></div><small>Across all classes</small>
+    </article>
+    <article class="metric-card">
+      <span class="metric-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+      <div><span>Total teachers</span><strong>{{ stats.totalTeachers }}</strong></div><small>Teaching staff</small>
+    </article>
+    <article class="metric-card">
+      <span class="metric-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+      <div><span>Total classes</span><strong>{{ stats.totalClasses }}</strong></div><small>Across all levels</small>
+    </article>
+    <article class="metric-card">
+      <span class="metric-icon" [class.success]="passRateHealthy()" [class.warning]="!passRateHealthy()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></span>
+      <div><span>Overall pass rate</span><strong>{{ stats.overallPassRate | number:'1.0-1' }}%</strong></div><small>{{ passRateHealthy() ? 'Healthy' : 'Needs attention' }}</small>
+    </article>
+  </section>
+
+  <section class="stats-grid">
+    <article class="panel chart-panel wide-panel">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow">Academics</p>
+          <h2>Average by class</h2>
+          <p>Weighted grade average per class, out of 20.</p>
+        </div>
+      </div>
+      <div class="bar-chart" *ngIf="stats.averageByClass.length; else emptyAverages">
+        <div class="bar-list">
+          <div class="bar-row" *ngFor="let entry of stats.averageByClass" tabindex="0" [title]="entry.className + ' — ' + entry.average + '/20 (' + entry.studentCount + ' students)'">
+            <span class="bar-label">{{ entry.levelName }} — {{ entry.className }}</span>
+            <div class="bar-track"><div class="bar-fill" [class.bar-fill-warning]="entry.average < 10" [style.width.%]="revealed() ? barWidth(entry.average, 20) : 0"></div></div>
+            <span class="bar-value">{{ entry.average | number:'1.1-1' }}/20</span>
+          </div>
+        </div>
+        <div class="bar-axis"><span></span><div class="bar-axis-ticks"><span>0</span><span>5</span><span>10</span><span>15</span><span>20</span></div><span></span></div>
+      </div>
+      <ng-template #emptyAverages><div class="empty"><strong>No grades recorded yet</strong><span>Averages appear once grades are entered.</span></div></ng-template>
+    </article>
+
+    <article class="panel chart-panel">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow">Directory</p>
+          <h2>Students by field of study</h2>
+          <p>Enrollment split across filières.</p>
+        </div>
+      </div>
+      <app-donut-chart *ngIf="fieldOfStudySegments().length; else emptyFields" [data]="fieldOfStudySegments()" centerLabel="Students"></app-donut-chart>
+      <ng-template #emptyFields><div class="empty"><strong>No students yet</strong><span>Add students to see this breakdown.</span></div></ng-template>
+    </article>
+
+    <article class="panel chart-panel">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow">Directory</p>
+          <h2>Students by level</h2>
+          <p>Enrollment split across academic levels.</p>
+        </div>
+      </div>
+      <app-donut-chart *ngIf="levelSegments().length; else emptyLevels" [data]="levelSegments()" centerLabel="Students"></app-donut-chart>
+      <ng-template #emptyLevels><div class="empty"><strong>No students yet</strong><span>Add students to see this breakdown.</span></div></ng-template>
+    </article>
+
+    <article class="panel chart-panel">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow">Attendance</p>
+          <h2>Absences overview</h2>
+          <p>{{ stats.absences.unjustifiedRate | number:'1.0-1' }}% of all absences are unjustified.</p>
+        </div>
+      </div>
+      <app-donut-chart *ngIf="absencesSegments().length; else emptyAbsences" [data]="absencesSegments()" centerLabel="Absences"></app-donut-chart>
+      <ng-template #emptyAbsences><div class="empty"><strong>No absences recorded</strong><span>This breakdown appears once absences are declared.</span></div></ng-template>
+    </article>
+
+    <article class="panel chart-panel">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow">Billing</p>
+          <h2>Payments overview</h2>
+          <p>{{ stats.payments.outstandingAmount | number:'1.3-3' }} TND outstanding.</p>
+        </div>
+      </div>
+      <div class="meter-block" *ngIf="stats.payments.totalInvoices; else emptyPayments">
+        <div class="meter-figure"><strong>{{ paidPct() | number:'1.0-0' }}%</strong><span>of invoices collected</span></div>
+        <div class="meter-track" [title]="stats.payments.paidCount + ' of ' + stats.payments.totalInvoices + ' invoices paid'">
+          <div class="meter-fill" [style.width.%]="revealed() ? paidPct() : 0"></div>
+        </div>
+        <ul class="meter-legend">
+          <li><span class="swatch swatch-success"></span>Paid ({{ stats.payments.paidCount }})<strong>{{ stats.payments.paidAmount | number:'1.3-3' }} TND</strong></li>
+          <li><span class="swatch swatch-danger"></span>Unpaid ({{ stats.payments.unpaidCount }})<strong>{{ stats.payments.outstandingAmount | number:'1.3-3' }} TND</strong></li>
+        </ul>
+      </div>
+      <ng-template #emptyPayments><div class="empty"><strong>No invoices yet</strong><span>This breakdown appears once invoices are issued.</span></div></ng-template>
+    </article>
+  </section>
+</ng-container>
+
+<ng-template #loadingState>
+  <section class="metrics">
+    <article class="metric-card" *ngFor="let _ of [1,2,3,4]"><div class="skeleton-line"></div></article>
+  </section>
+  <div class="empty"><strong>{{ loading ? 'Loading statistics…' : 'Could not load statistics' }}</strong><span>{{ loading ? 'Please wait a moment.' : '' }}</span></div>
+</ng-template>

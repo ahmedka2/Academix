@@ -1,0 +1,113 @@
+<section class="metrics">
+  <article class="metric-card">
+    <span class="metric-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+    <div><span>Total students</span><strong>{{ studentCount }}</strong></div><small>In your directory</small>
+  </article>
+  <article class="metric-card">
+    <span class="metric-icon success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>
+    <div><span>Directory status</span><strong>Active</strong></div><small>Live from your API</small>
+  </article>
+</section>
+
+<section class="content-grid" [class.single-column]="!isAdmin()">
+  <article class="panel create-panel" *ngIf="isAdmin()">
+    <div class="panel-head">
+      <div>
+        <p class="eyebrow">New record</p>
+        <h2>Add a student</h2>
+        <p>Creates the login account and student profile together.</p>
+      </div>
+    </div>
+
+    <form class="student-form" [formGroup]="studentForm" (ngSubmit)="createStudent()">
+      <label>First name<input formControlName="firstName" placeholder="e.g. Ines"></label>
+      <label>Last name<input formControlName="lastName" placeholder="e.g. Ben Salem"></label>
+      <label>National ID / CIN<input formControlName="cin" placeholder="12345678"></label>
+      <label>Email address<input type="email" formControlName="email" placeholder="student@school.edu"></label>
+      <label>Password<input [type]="passwordVisible ? 'text' : 'password'" formControlName="password"><button class="reveal" type="button" (click)="passwordVisible = !passwordVisible">{{ passwordVisible ? 'Hide' : 'Show' }}</button></label>
+      <label>Field of study<input formControlName="fieldOfStudy" placeholder="Computer Science"></label>
+      <label>Class <span class="optional">Optional</span><select formControlName="classId"><option [ngValue]="0">Unassigned</option><option *ngFor="let schoolClass of classes()" [ngValue]="schoolClass.id" [disabled]="schoolClass.studentCount >= schoolClass.capacity">{{ schoolClass.levelName }} — {{ schoolClass.name }} ({{ schoolClass.studentCount }}/{{ schoolClass.capacity }})</option></select></label>
+      <button type="submit" class="primary-button wide submit-button" [disabled]="loading">{{ loading ? 'Creating student…' : 'Create student' }} <span>→</span></button>
+    </form>
+  </article>
+
+  <section class="panel students-panel">
+    <div class="panel-head">
+      <div>
+        <p class="eyebrow">Directory</p>
+        <h2>Students <span class="count">{{ studentCount }}</span></h2>
+        <p>Search, review, and keep your academic records current.</p>
+      </div>
+      <div class="actions">
+        <div class="search-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input class="search" [(ngModel)]="query" (keyup.enter)="searchStudents()" placeholder="Search by name or student ID"></div>
+        <select class="class-filter" [(ngModel)]="classFilter"><option [ngValue]="0">All classes</option><option *ngFor="let schoolClass of classes()" [ngValue]="schoolClass.id">{{ schoolClass.levelName }} — {{ schoolClass.name }}</option></select>
+        <button type="button" class="ghost" [disabled]="loadingStudents" (click)="loadStudents()">{{ loadingStudents ? 'Loading…' : 'Refresh' }}</button>
+        <button type="button" class="primary-button search-button" [disabled]="loadingStudents" (click)="searchStudents()">Search</button>
+      </div>
+    </div>
+
+    <div class="student-cards" *ngIf="filteredStudents.length; else emptyDirectory">
+      <article class="student-card" *ngFor="let student of filteredStudents; trackBy: trackStudent">
+        <div class="student-card-head">
+          <div class="student-name">
+            <img *ngIf="student.photoUrl; else initials" [src]="student.photoUrl" [alt]="student.firstName + ' ' + student.lastName" class="student-photo">
+            <ng-template #initials><span class="student-avatar">{{ student.firstName[0] }}{{ student.lastName[0] }}</span></ng-template>
+            <div><h3>{{ student.firstName }} {{ student.lastName }}</h3><span class="id-pill">#{{ student.id }}</span></div>
+          </div>
+          <span class="field-pill">{{ student.fieldOfStudy }}</span>
+        </div>
+        <dl class="student-details">
+          <div><dt>Student ID</dt><dd>{{ student.studentIdentifier }}</dd></div>
+          <div><dt>Class</dt><dd>{{ student.className || 'Unassigned' }}</dd></div>
+          <div class="full-detail"><dt>Email</dt><dd>{{ student.email }}</dd></div>
+          <div *ngIf="student.phone"><dt>Phone</dt><dd>{{ student.phone }}</dd></div>
+        </dl>
+        <div class="card-actions" *ngIf="isAdmin()">
+          <button type="button" class="ghost" (click)="startEditing(student)">Edit student</button>
+          <button type="button" class="text-action danger" (click)="requestDelete(student)">Delete</button>
+        </div>
+      </article>
+    </div>
+    <ng-template #emptyDirectory>
+      <div class="empty"><strong>{{ loadingStudents ? 'Loading your directory…' : 'No students found' }}</strong><span>{{ loadingStudents ? 'Please wait a moment.' : 'Create your first student record above.' }}</span></div>
+    </ng-template>
+  </section>
+</section>
+
+<div class="modal-backdrop" *ngIf="editingStudent">
+  <section class="modal" role="dialog" aria-modal="true" aria-labelledby="edit-title">
+    <div class="modal-head">
+      <div><p class="eyebrow">Student record</p><h2 id="edit-title">Edit student</h2></div>
+      <button type="button" class="close-button" (click)="cancelEditing()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg></button>
+    </div>
+    <div class="readonly-id"><span>Student ID</span><strong>{{ editingStudent.studentIdentifier }}</strong><small>Generated automatically and cannot be changed.</small></div>
+    <form class="student-form edit-form" [formGroup]="editForm" (ngSubmit)="updateStudent()">
+      <label>First name<input formControlName="firstName"></label>
+      <label>Last name<input formControlName="lastName"></label>
+      <label>National ID / CIN<input formControlName="cin"></label>
+      <label>Email address<input type="email" formControlName="email"></label>
+      <label>Phone <span class="optional">Optional</span><input formControlName="phone"></label>
+      <label>Field of study<input formControlName="fieldOfStudy"></label>
+      <label>Class <span class="optional">Optional</span><select formControlName="classId"><option [ngValue]="0">Unassigned</option><option *ngFor="let schoolClass of classes()" [ngValue]="schoolClass.id" [disabled]="schoolClass.studentCount >= schoolClass.capacity && schoolClass.id !== editingStudent.classId">{{ schoolClass.levelName }} — {{ schoolClass.name }} ({{ schoolClass.studentCount }}/{{ schoolClass.capacity }})</option></select></label>
+      <label>Photo URL <span class="optional">Optional</span><input formControlName="photoUrl"></label>
+      <label class="wide">Address <span class="optional">Optional</span><input formControlName="address"></label>
+      <div class="modal-actions wide">
+        <button type="button" class="ghost" (click)="cancelEditing()">Cancel</button>
+        <button type="submit" class="primary-button" [disabled]="loading">{{ loading ? 'Saving…' : 'Save changes' }}</button>
+      </div>
+    </form>
+  </section>
+</div>
+
+<div class="modal-backdrop" *ngIf="studentPendingDeletion">
+  <section class="modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-title">
+    <div class="warning-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div>
+    <p class="eyebrow">Permanent action</p>
+    <h2 id="delete-title">Delete {{ studentPendingDeletion.firstName }}?</h2>
+    <p>This removes the student profile and its login account. This action cannot be undone.</p>
+    <div class="modal-actions">
+      <button type="button" class="ghost" (click)="cancelDelete()">Cancel</button>
+      <button type="button" class="danger-button" [disabled]="loading" (click)="deleteStudent()">{{ loading ? 'Deleting…' : 'Delete student' }}</button>
+    </div>
+  </section>
+</div>
