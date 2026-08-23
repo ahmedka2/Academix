@@ -63,7 +63,7 @@ h1, h2, h3 {
 /* Routed feature components render as their own host element inside .workspace;
    make that host transparent so its template's root sections become direct
    flex children of .workspace (needed for the last section's flex:1 to work). */
-app-students, app-teachers, app-classes, app-my-classes, app-invoices, app-grades, app-absences, app-statistics, app-profile { display:contents; }
+app-students, app-teachers, app-classes, app-my-classes, app-invoices, app-grades, app-absences, app-statistics, app-profile, app-documents, app-stage-documents { display:contents; }
 .topbar { min-height:56px; display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:30px; gap:16px; }
 .topbar h2 { margin:6px 0 0; letter-spacing:-.02em; font-size:1.55rem; line-height:1.15; color:var(--ink); }
 
@@ -82,6 +82,14 @@ input::placeholder, textarea::placeholder { color:#a89d84; }
 input:focus, select:focus, textarea:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
 .optional { color:var(--subtle); font-weight:500; margin-left:3px; }
 .wide { grid-column:1/-1; }
+
+/* Inline validation — a form flags exactly which field is wrong, not just a
+   generic toast. Applied via [class.invalid] once a control is touched or a
+   submit was attempted; harmless until a component opts in. */
+label.invalid { color:var(--danger); }
+label.invalid input, label.invalid select, label.invalid textarea { border-color:var(--danger); }
+label.invalid input:focus, label.invalid select:focus, label.invalid textarea:focus { box-shadow:0 0 0 3px var(--danger-bg); }
+.field-error { display:block; margin-top:1px; color:var(--danger); font-size:.68rem; font-weight:600; }
 
 /* Shared buttons */
 .primary-button,.ghost,.danger-button { border:0; border-radius:var(--radius-sm); height:38px; padding:0 14px; font:inherit; font-size:.76rem; font-weight:700; cursor:pointer; transition:background-color .15s, box-shadow .15s, transform .1s; display:inline-flex; align-items:center; justify-content:center; gap:6px; }

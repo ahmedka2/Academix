@@ -13,22 +13,42 @@
   </article>
 </section>
 
-<section class="content-grid">
-  <article class="panel create-panel">
+<section class="content-grid" [class.single-column]="!isTeacher()">
+  <article class="panel create-panel" *ngIf="isTeacher()">
     <div class="panel-head">
       <div>
-        <p class="eyebrow">New record</p>
-        <h2>Declare an absence</h2>
-        <p>Mark a student absent for a subject.</p>
+        <p class="eyebrow">Roll call</p>
+        <h2>Take attendance</h2>
+        <p>Pick one of your classes and mark who's absent.</p>
       </div>
     </div>
 
-    <form class="absence-form" [formGroup]="absenceForm" (ngSubmit)="createAbsence()">
-      <label class="wide">Student<div class="student-picker"><input [(ngModel)]="absenceStudentQuery" [ngModelOptions]="{standalone: true}" placeholder="Type a student name or ID" autocomplete="off"><div class="student-suggestions" *ngIf="absenceStudentSuggestions.length"><button type="button" *ngFor="let student of absenceStudentSuggestions" (click)="selectAbsenceStudent(student)"><strong>{{ student.firstName }} {{ student.lastName }}</strong><span>{{ student.studentIdentifier }}</span></button></div></div></label>
-      <label class="wide">Subject<input formControlName="subject" placeholder="e.g. Algorithms"></label>
+    <div class="assignment-list" *ngIf="!selectedAssignment">
+      <button type="button" class="assignment-option" *ngFor="let assignment of myClasses()" (click)="selectAssignment(assignment)">
+        <strong>{{ assignment.className }}</strong>
+        <span>{{ assignment.levelName }} · {{ assignment.subject }}</span>
+        <small>{{ assignment.studentCount }} student(s)</small>
+      </button>
+      <div class="empty" *ngIf="!myClasses().length"><strong>No classes assigned</strong><span>Ask an administrator to assign you to a class.</span></div>
+    </div>
+
+    <form class="roll-call-form" *ngIf="selectedAssignment" [formGroup]="rollCallForm" (ngSubmit)="submitRollCall()">
+      <div class="roll-call-head">
+        <div><strong>{{ selectedAssignment.className }}</strong><span>{{ selectedAssignment.subject }}</span></div>
+        <button type="button" class="text-action" (click)="clearAssignment()">Change class</button>
+      </div>
       <label>Date<input type="date" formControlName="date"></label>
-      <label class="wide">Comment <span class="optional">Optional</span><input formControlName="comment" placeholder="Context for this absence"></label>
-      <button type="submit" class="primary-button wide submit-button" [disabled]="loading">{{ loading ? 'Saving…' : 'Declare absence' }} <span>→</span></button>
+      <div class="roster-table" *ngIf="!loadingRoster; else loadingRosterTpl">
+        <div class="roster-row roster-header"><span>Student</span><span>Present</span><span>Absent</span></div>
+        <div class="roster-row" *ngFor="let student of roster">
+          <span>{{ student.firstName }} {{ student.lastName }}<small>{{ student.studentIdentifier }}</small></span>
+          <button type="button" class="presence-toggle" [class.active]="!absentDrafts[student.id]" (click)="toggleAbsent(student.id, false)">Present</button>
+          <button type="button" class="presence-toggle absent" [class.active]="absentDrafts[student.id]" (click)="toggleAbsent(student.id, true)">Absent</button>
+        </div>
+        <div class="empty" *ngIf="!roster.length"><strong>No students in this class</strong><span>This class has no roster yet.</span></div>
+      </div>
+      <ng-template #loadingRosterTpl><div class="empty"><strong>Loading roster…</strong></div></ng-template>
+      <button type="submit" class="primary-button wide submit-button" [disabled]="submitting || !roster.length">{{ submitting ? 'Saving…' : 'Record attendance' }} <span>→</span></button>
     </form>
   </article>
 
@@ -78,7 +98,7 @@
       </article>
     </div>
     <ng-template #emptyAbsences>
-      <div class="empty"><strong>No absences found</strong><span>Declare the first absence using the form.</span></div>
+      <div class="empty"><strong>No absences found</strong><span>{{ isTeacher() ? 'Take attendance using the roll call form.' : 'Nothing has been recorded yet.' }}</span></div>
     </ng-template>
   </section>
 </section>
@@ -86,8 +106,8 @@
 <div class="modal-backdrop" *ngIf="editingAbsence">
   <section class="modal" role="dialog" aria-modal="true" aria-labelledby="absence-edit-title">
     <div class="modal-head"><div><p class="eyebrow">Roll call</p><h2 id="absence-edit-title">Edit absence</h2></div><button type="button" class="close-button" (click)="cancelEditing()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg></button></div>
+    <div class="readonly-id"><span>Student</span><strong>{{ editingAbsence.studentName }}</strong><small>{{ editingAbsence.studentIdentifier }}</small></div>
     <form class="absence-form" [formGroup]="editAbsenceForm" (ngSubmit)="updateAbsence()">
-      <label class="wide">Student<div class="student-picker"><input [(ngModel)]="editAbsenceStudentQuery" [ngModelOptions]="{standalone: true}" placeholder="Type a student name or ID" autocomplete="off"><div class="student-suggestions" *ngIf="editAbsenceStudentSuggestions.length"><button type="button" *ngFor="let student of editAbsenceStudentSuggestions" (click)="selectAbsenceStudent(student, true)"><strong>{{ student.firstName }} {{ student.lastName }}</strong><span>{{ student.studentIdentifier }}</span></button></div></div></label>
       <label class="wide">Subject<input formControlName="subject"></label>
       <label>Date<input type="date" formControlName="date"></label>
       <label class="wide">Comment <span class="optional">Optional</span><input formControlName="comment"></label>

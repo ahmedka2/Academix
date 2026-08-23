@@ -1,8 +1,15 @@
 package com.academix.grade.service;
 
+import com.academix.auth.entity.User;
+import com.academix.auth.repository.UserRepository;
+import com.academix.classroom.repository.TeacherAssignmentRepository;
+import com.academix.grade.dto.BulkGradeEntry;
+import com.academix.grade.dto.BulkGradeRequest;
 import com.academix.grade.dto.GradeRequest;
 import com.academix.grade.dto.GradeResponse;
+import com.academix.grade.dto.ValidateGradeRequest;
 import com.academix.grade.entity.Grade;
+import com.academix.grade.entity.GradeStatus;
 import com.academix.grade.repository.GradeRepository;
 import com.academix.student.entity.Student;
 import com.academix.student.repository.StudentRepository;
@@ -13,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -21,10 +29,15 @@ public class GradeService {
 
 	private final GradeRepository gradeRepository;
 	private final StudentRepository studentRepository;
+	private final TeacherAssignmentRepository teacherAssignmentRepository;
+	private final UserRepository userRepository;
 
-	public GradeService(GradeRepository gradeRepository, StudentRepository studentRepository) {
+	public GradeService(GradeRepository gradeRepository, StudentRepository studentRepository,
+			TeacherAssignmentRepository teacherAssignmentRepository, UserRepository userRepository) {
 		this.gradeRepository = gradeRepository;
 		this.studentRepository = studentRepository;
+		this.teacherAssignmentRepository = teacherAssignmentRepository;
+		this.userRepository = userRepository;
 	}
 
 	@Transactional(readOnly = true)
@@ -41,20 +54,42 @@ public class GradeService {
 		Student student = studentRepository.findByEmailIgnoreCase(email)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Student profile not found"));
 		return gradeRepository.findByStudentId(student.getId()).stream()
+				.filter(grade -> grade.getStatus() == GradeStatus.APPROVED)
 				.map(this::toResponse)
 				.toList();
 	}
 
-	public GradeResponse create(GradeRequest request) {
-		requireAdministrationOrTeacher();
-		Grade grade = new Grade(
-				findStudent(request.studentId()),
-				request.subject().trim(),
-				request.score(),
-				request.coefficient(),
-				request.semester(),
-				request.academicYear());
-		return toResponse(gradeRepository.save(grade));
+	public List<GradeResponse> createBulk(BulkGradeRequest request) {
+		User teacher = requireAssignedTeacher(request.classId(), request.subject());
+		String subject = request.subject().trim();
+		List<Grade> created = request.entries().stream()
+				.filter(entry -> entry.score() != null)
+				.map(entry -> {
+					Grade grade = new Grade(
+							findStudent(entry.studentId()),
+							subject,
+							entry.score(),
+							request.coefficient(),
+							request.semester(),
+							request.academicYear());
+					grade.setSubmittedBy(teacher.getEmail());
+					return gradeRepository.save(grade);
+				})
+				.toList();
+		return created.stream().map(this::toResponse).toList();
+	}
+
+	public GradeResponse validate(Long id, ValidateGradeRequest request) {
+		requireAdministration();
+		Grade grade = findGrade(id);
+		if (grade.getStatus() != GradeStatus.PENDING) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "This grade is not pending review");
+		}
+		grade.setStatus(request.approved() ? GradeStatus.APPROVED : GradeStatus.REJECTED);
+		grade.setReviewComment(normalizeOptional(request.comment()));
+		grade.setReviewedAt(Instant.now());
+		grade.setReviewedBy(currentUsername());
+		return toResponse(grade);
 	}
 
 	public GradeResponse update(Long id, GradeRequest request) {
@@ -66,6 +101,12 @@ public class GradeService {
 		grade.setCoefficient(request.coefficient());
 		grade.setSemester(request.semester());
 		grade.setAcademicYear(request.academicYear());
+		if (grade.getStatus() != GradeStatus.PENDING) {
+			grade.setStatus(GradeStatus.PENDING);
+			grade.setReviewComment(null);
+			grade.setReviewedAt(null);
+			grade.setReviewedBy(null);
+		}
 		return toResponse(grade);
 	}
 
@@ -84,6 +125,15 @@ public class GradeService {
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Student not found"));
 	}
 
+	private User requireAssignedTeacher(Long classId, String subject) {
+		User teacher = userRepository.findByEmailIgnoreCase(currentUsername())
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required"));
+		if (!teacherAssignmentRepository.existsByTeacherIdAndSchoolClassIdAndSubjectIgnoreCase(teacher.getId(), classId, subject.trim())) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not assigned to this class for that subject");
+		}
+		return teacher;
+	}
+
 	private GradeResponse toResponse(Grade grade) {
 		Student student = grade.getStudent();
 		return new GradeResponse(
@@ -95,12 +145,23 @@ public class GradeService {
 				grade.getScore(),
 				grade.getCoefficient(),
 				grade.getSemester(),
-				grade.getAcademicYear());
+				grade.getAcademicYear(),
+				grade.getStatus(),
+				grade.getSubmittedBy(),
+				grade.getReviewComment(),
+				grade.getReviewedAt(),
+				grade.getReviewedBy());
 	}
 
 	private void requireAdministrationOrTeacher() {
 		if (!hasRole("ROLE_ADMINISTRATION") && !hasRole("ROLE_TEACHER")) {
 			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Administration or teacher access required");
+		}
+	}
+
+	private void requireAdministration() {
+		if (!hasRole("ROLE_ADMINISTRATION")) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Administration access required");
 		}
 	}
 
@@ -116,5 +177,12 @@ public class GradeService {
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
 		}
 		return authentication.getName();
+	}
+
+	private String normalizeOptional(String value) {
+		if (value == null || value.trim().isBlank()) {
+			return null;
+		}
+		return value.trim();
 	}
 }

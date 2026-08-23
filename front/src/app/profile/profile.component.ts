@@ -1,18 +1,25 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 import { AbsenceResponse } from '../absences/absence.model';
 import { AbsencesService } from '../absences/absences.service';
 import { extractErrorMessage } from '../core/http-error.util';
+import { filenameFromContentDisposition, triggerBrowserDownload } from '../core/file-download.util';
 import { NotificationService } from '../core/notification.service';
+import { DOCUMENT_TYPE_LABELS, DocumentResponse } from '../documents/document.model';
+import { DocumentsService } from '../documents/documents.service';
 import { GradeResponse, Semester } from '../grades/grade.model';
 import { GradesService } from '../grades/grades.service';
 import { InvoicesService } from '../invoices/invoices.service';
+import { STAGE_DOCUMENT_TYPES, STAGE_DOCUMENT_TYPE_LABELS, StageDocumentResponse, StageDocumentType } from '../stage-documents/stage-document.model';
+import { StageDocumentsService } from '../stage-documents/stage-documents.service';
 import { StudentResponse } from '../students/student.model';
 import { StudentsService } from '../students/students.service';
 
 const UNJUSTIFIED_THRESHOLD = 3;
+
+export type ProfileTab = 'profile' | 'grades' | 'absences' | 'invoices' | 'documents' | 'stage';
 
 @Component({
   selector: 'app-profile',
@@ -26,20 +33,33 @@ export class ProfileComponent implements OnInit {
   private readonly gradesService = inject(GradesService);
   private readonly absencesService = inject(AbsencesService);
   private readonly invoicesService = inject(InvoicesService);
+  private readonly documentsService = inject(DocumentsService);
+  private readonly stageDocumentsService = inject(StageDocumentsService);
   private readonly notifications = inject(NotificationService);
 
   readonly grades = this.gradesService.grades;
   readonly absences = this.absencesService.absences;
   readonly invoices = this.invoicesService.invoices;
+  readonly documents = this.documentsService.documents;
+  readonly documentTypeLabels = DOCUMENT_TYPE_LABELS;
+  readonly stageDocuments = this.stageDocumentsService.documents;
+  readonly stageDocumentTypes = STAGE_DOCUMENT_TYPES;
+  readonly stageDocumentTypeLabels = STAGE_DOCUMENT_TYPE_LABELS;
+
+  readonly activeTab = signal<ProfileTab>('profile');
 
   profile: StudentResponse | null = null;
   loadingProfile = false;
   loadingGrades = false;
   loadingAbsences = false;
   loadingInvoices = false;
+  loadingDocuments = false;
+  loadingStageDocuments = false;
+  uploadingStageType: StageDocumentType | null = null;
   semesterFilter: 'ALL' | Semester = 'ALL';
   justifyTarget: AbsenceResponse | null = null;
   justificationText = '';
+  attemptedJustify = false;
   editingPhone = false;
   phoneDraft = '';
   savingPhone = false;
@@ -50,6 +70,8 @@ export class ProfileComponent implements OnInit {
     this.loadGrades();
     this.loadAbsences();
     this.loadInvoices();
+    this.loadDocuments();
+    this.loadStageDocuments();
   }
 
   get filteredGrades(): GradeResponse[] {
@@ -64,6 +86,18 @@ export class ProfileComponent implements OnInit {
     if (totalCoefficient === 0) return 0;
     const weightedSum = grades.reduce((sum, grade) => sum + grade.score * grade.coefficient, 0);
     return weightedSum / totalCoefficient;
+  }
+
+  /** A decorative "library card" bar pattern derived from the student's own
+   * identifier — not a real scannable barcode, but drawn from real data
+   * rather than pure decoration, so it's the same card every time. */
+  get idBarcode(): number[] {
+    const id = this.profile?.studentIdentifier ?? '';
+    const widths: number[] = [];
+    for (let i = 0; i < id.length; i++) {
+      widths.push((id.charCodeAt(i) % 3) + 2);
+    }
+    return widths;
   }
 
   loadProfile(): void {
@@ -143,6 +177,75 @@ export class ProfileComponent implements OnInit {
     });
   }
 
+  loadDocuments(): void {
+    this.loadingDocuments = true;
+    this.documentsService.loadMine().subscribe({
+      error: (error) => this.handleError(error, 'Could not load your documents.'),
+      complete: () => this.loadingDocuments = false
+    });
+  }
+
+  downloadDocument(document: DocumentResponse): void {
+    this.documentsService.download(document.id).subscribe({
+      next: (response) => {
+        const fallback = `${document.type.toLowerCase()}-${document.studentIdentifier}.pdf`;
+        const filename = filenameFromContentDisposition(response.headers.get('Content-Disposition'), fallback);
+        triggerBrowserDownload(response.body as Blob, filename);
+      },
+      error: (error) => this.handleError(error, 'Could not download document.')
+    });
+  }
+
+  loadStageDocuments(): void {
+    this.loadingStageDocuments = true;
+    this.stageDocumentsService.loadMine().subscribe({
+      error: (error) => this.handleError(error, 'Could not load your stage documents.'),
+      complete: () => this.loadingStageDocuments = false
+    });
+  }
+
+  stageDocumentFor(type: StageDocumentType): StageDocumentResponse | undefined {
+    return this.stageDocuments().find((document) => document.type === type);
+  }
+
+  onStageDocumentSelected(type: StageDocumentType, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    if (!['application/pdf', 'image/jpeg', 'image/png'].includes(file.type)) {
+      this.notifications.show('File must be a PDF, JPEG, or PNG.', 'error');
+      input.value = '';
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      this.notifications.show('File must be smaller than 10MB.', 'error');
+      input.value = '';
+      return;
+    }
+
+    this.uploadingStageType = type;
+    this.stageDocumentsService.upload(type, file).subscribe({
+      next: () => this.notifications.show(`${this.stageDocumentTypeLabels[type]} uploaded for review.`, 'success'),
+      error: (error) => this.handleError(error, 'Could not upload document.'),
+      complete: () => {
+        this.uploadingStageType = null;
+        input.value = '';
+      }
+    });
+  }
+
+  downloadStageDocument(document: StageDocumentResponse): void {
+    this.stageDocumentsService.download(document.id).subscribe({
+      next: (response) => {
+        const fallback = `${document.type.toLowerCase()}-${document.studentIdentifier}`;
+        const filename = filenameFromContentDisposition(response.headers.get('Content-Disposition'), fallback);
+        triggerBrowserDownload(response.body as Blob, filename);
+      },
+      error: (error) => this.handleError(error, 'Could not download document.')
+    });
+  }
+
   get outstandingAmount(): number {
     return this.invoices()
       .filter((invoice) => invoice.status === 'UNPAID')
@@ -172,14 +275,17 @@ export class ProfileComponent implements OnInit {
   startJustifying(absence: AbsenceResponse): void {
     this.justifyTarget = absence;
     this.justificationText = absence.justification ?? '';
+    this.attemptedJustify = false;
   }
 
   cancelJustifying(): void {
     this.justifyTarget = null;
     this.justificationText = '';
+    this.attemptedJustify = false;
   }
 
   submitJustification(): void {
+    this.attemptedJustify = true;
     const target = this.justifyTarget;
     if (!target || !this.justificationText.trim()) {
       this.notifications.show('Enter a justification before submitting.', 'error');

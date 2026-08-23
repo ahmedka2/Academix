@@ -1,0 +1,80 @@
+<section class="metrics">
+  <article class="metric-card">
+    <span class="metric-icon warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span>
+    <div><span>Pending review</span><strong>{{ pendingCount }}</strong></div><small>Awaiting a decision</small>
+  </article>
+  <article class="metric-card">
+    <span class="metric-icon success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+    <div><span>Approved</span><strong>{{ approvedCount }}</strong></div><small>All time</small>
+  </article>
+  <article class="metric-card">
+    <span class="metric-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg></span>
+    <div><span>Rejected</span><strong>{{ rejectedCount }}</strong></div><small>All time</small>
+  </article>
+</section>
+
+<section class="panel stage-doc-panel">
+  <div class="panel-head">
+    <div>
+      <p class="eyebrow">Internships</p>
+      <h2>Stage documents <span class="count">{{ documents().length }}</span></h2>
+      <p>Review convention, rapport, attestation, and fiche d'encadrement uploads.</p>
+    </div>
+    <button type="button" class="ghost" [disabled]="loading" (click)="loadDocuments()">{{ loading ? 'Loading…' : 'Refresh' }}</button>
+  </div>
+
+  <div class="stage-doc-filters">
+    <div class="status-filters">
+      <button type="button" [class.active]="statusFilter === 'ALL'" (click)="statusFilter = 'ALL'">All</button>
+      <button type="button" [class.active]="statusFilter === 'PENDING'" (click)="statusFilter = 'PENDING'">Pending</button>
+      <button type="button" [class.active]="statusFilter === 'APPROVED'" (click)="statusFilter = 'APPROVED'">Approved</button>
+      <button type="button" [class.active]="statusFilter === 'REJECTED'" (click)="statusFilter = 'REJECTED'">Rejected</button>
+    </div>
+    <input type="text" [(ngModel)]="searchQuery" placeholder="Search by student name or ID" autocomplete="off">
+  </div>
+
+  <div class="stage-doc-cards" *ngIf="filteredDocuments.length; else emptyDocuments">
+    <article class="stage-doc-card" *ngFor="let document of filteredDocuments">
+      <div class="stage-doc-head">
+        <div>
+          <strong class="subject-name">{{ typeLabels[document.type] }}</strong>
+          <small>{{ document.studentName }} · {{ document.studentIdentifier }} · uploaded {{ document.uploadedAt | date:'medium' }}</small>
+        </div>
+        <span class="stamp" [class.stamp-good]="document.status === 'APPROVED'" [class.stamp-bad]="document.status === 'REJECTED'">{{ document.status }}</span>
+      </div>
+      <p class="stage-doc-comment" *ngIf="document.comment"><strong>Comment:</strong> {{ document.comment }}</p>
+      <div class="card-actions">
+        <button type="button" class="text-action" (click)="downloadDocument(document)">Download</button>
+        <ng-container *ngIf="document.status === 'PENDING'">
+          <button type="button" class="text-action" (click)="approve(document)">Approve</button>
+          <button type="button" class="text-action danger" (click)="startReject(document)">Reject</button>
+        </ng-container>
+        <button type="button" class="text-action danger" (click)="requestDocumentDelete(document)">Delete</button>
+      </div>
+    </article>
+  </div>
+  <ng-template #emptyDocuments>
+    <div class="empty"><strong>{{ loading ? 'Loading documents…' : 'No stage documents yet' }}</strong><span>{{ loading ? 'Please wait a moment.' : 'Nothing has been uploaded yet.' }}</span></div>
+  </ng-template>
+</section>
+
+<div class="modal-backdrop" *ngIf="rejectTarget">
+  <section class="modal" role="dialog" aria-modal="true" aria-labelledby="reject-title">
+    <div class="modal-head">
+      <div><p class="eyebrow">Internships</p><h2 id="reject-title">Reject document</h2></div>
+      <button type="button" class="close-button" (click)="cancelReject()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg></button>
+    </div>
+    <p>{{ typeLabels[rejectTarget.type] }} for {{ rejectTarget.studentName }}</p>
+    <form (ngSubmit)="confirmReject()">
+      <label class="wide">Reason <span class="optional">Optional</span><textarea rows="4" [(ngModel)]="rejectComment" name="rejectComment" placeholder="Explain what needs to be fixed"></textarea></label>
+      <div class="modal-actions wide">
+        <button type="button" class="ghost" (click)="cancelReject()">Cancel</button>
+        <button type="submit" class="danger-button">Reject</button>
+      </div>
+    </form>
+  </section>
+</div>
+
+<div class="modal-backdrop" *ngIf="documentPendingDeletion">
+  <section class="modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="stage-doc-delete-title"><div class="warning-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div><p class="eyebrow">Permanent action</p><h2 id="stage-doc-delete-title">Delete this document?</h2><p>{{ typeLabels[documentPendingDeletion.type] }} for {{ documentPendingDeletion.studentName }} will be permanently removed.</p><div class="modal-actions"><button type="button" class="ghost" (click)="cancelDocumentDelete()">Cancel</button><button type="button" class="danger-button" [disabled]="loading" (click)="deleteDocument()">{{ loading ? 'Deleting…' : 'Delete document' }}</button></div></section>
+</div>

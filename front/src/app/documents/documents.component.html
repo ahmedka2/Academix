@@ -1,0 +1,46 @@
+<section class="metrics">
+  <article class="metric-card">
+    <span class="metric-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg></span>
+    <div><span>Total documents</span><strong>{{ documents().length }}</strong></div><small>All time</small>
+  </article>
+  <article class="metric-card">
+    <span class="metric-icon success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+    <div><span>Enrollment documents</span><strong>{{ enrollmentCount }}</strong></div><small>Attestations &amp; certificats</small>
+  </article>
+  <article class="metric-card">
+    <span class="metric-icon warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1.66 2.69 3 6 3s6-1.34 6-3v-5"/></svg></span>
+    <div><span>Transcripts</span><strong>{{ transcriptCount }}</strong></div><small>Relevés &amp; bulletins</small>
+  </article>
+</section>
+
+<section class="document-section">
+  <article class="panel document-create-panel">
+    <div class="panel-head"><div><p class="eyebrow">Registrar</p><h2>Generate document</h2><p>Issue an official PDF for a student, archived for later download.</p></div></div>
+    <form class="document-form" [formGroup]="documentForm" (ngSubmit)="generateDocument()">
+      <label class="wide">Student<div class="student-picker"><input [(ngModel)]="documentStudentQuery" [ngModelOptions]="{standalone: true}" placeholder="Type a student name or ID" autocomplete="off"><div class="student-suggestions" *ngIf="documentStudentSuggestions.length"><button type="button" *ngFor="let student of documentStudentSuggestions" (click)="selectDocumentStudent(student)"><strong>{{ student.firstName }} {{ student.lastName }}</strong><span>{{ student.studentIdentifier }}</span></button></div></div></label>
+      <label class="wide">Document type<select formControlName="type"><option value="ATTESTATION_SCOLARITE">Attestation de scolarité</option><option value="CERTIFICAT_INSCRIPTION">Certificat d'inscription</option><option value="RELEVE_NOTES">Relevé de notes / Bulletin</option></select></label>
+      <label>Academic year<input type="text" placeholder="2025-2026" formControlName="academicYear"></label>
+      <label *ngIf="isReleveNotes">Period<select formControlName="semester"><option value="">Full year (S1 + S2)</option><option value="S1">Semester 1 (bulletin)</option><option value="S2">Semester 2 (bulletin)</option></select></label>
+      <button type="submit" class="primary-button wide" [disabled]="generating">{{ generating ? 'Generating…' : 'Generate document' }} <span>→</span></button>
+    </form>
+  </article>
+  <article class="panel document-list-panel">
+    <div class="panel-head"><div><p class="eyebrow">Archive</p><h2>Generated documents <span class="count">{{ documents().length }}</span></h2></div><button type="button" class="ghost" (click)="loadDocuments()">Refresh</button></div>
+    <div class="document-cards" *ngIf="documents().length; else emptyDocuments">
+      <article class="document-card" *ngFor="let document of documents()">
+        <div>
+          <span class="document-type">{{ typeLabels[document.type] }}</span>
+          <strong>{{ document.studentName }}</strong>
+          <small>{{ document.studentIdentifier }} · {{ document.academicYear }}{{ document.semester ? ' · ' + document.semester : '' }}</small>
+        </div>
+        <div class="document-meta"><small>By {{ document.generatedBy }}</small><small>{{ document.generatedAt | date:'medium' }}</small></div>
+        <div class="document-actions"><button type="button" class="text-action" (click)="downloadDocument(document)">Download</button><button type="button" class="text-action danger" (click)="requestDocumentDelete(document)">Delete</button></div>
+      </article>
+    </div>
+    <ng-template #emptyDocuments><div class="empty"><strong>{{ loading ? 'Loading documents…' : 'No documents yet' }}</strong><span>{{ loading ? 'Please wait a moment.' : 'Generate the first document using the form.' }}</span></div></ng-template>
+  </article>
+</section>
+
+<div class="modal-backdrop" *ngIf="documentPendingDeletion">
+  <section class="modal confirm-modal" role="dialog" aria-modal="true" aria-labelledby="document-delete-title"><div class="warning-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div><p class="eyebrow">Permanent action</p><h2 id="document-delete-title">Delete this document?</h2><p>{{ typeLabels[documentPendingDeletion.type] }} for {{ documentPendingDeletion.studentName }} will be permanently removed.</p><div class="modal-actions"><button type="button" class="ghost" (click)="cancelDocumentDelete()">Cancel</button><button type="button" class="danger-button" [disabled]="loading" (click)="deleteDocument()">{{ loading ? 'Deleting…' : 'Delete document' }}</button></div></section>
+</div>

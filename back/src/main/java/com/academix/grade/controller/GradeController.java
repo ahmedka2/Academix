@@ -1,7 +1,9 @@
 package com.academix.grade.controller;
 
+import com.academix.grade.dto.BulkGradeRequest;
 import com.academix.grade.dto.GradeRequest;
 import com.academix.grade.dto.GradeResponse;
+import com.academix.grade.dto.ValidateGradeRequest;
 import com.academix.grade.service.GradeService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -37,14 +39,19 @@ public class GradeController {
 		return ResponseEntity.ok(gradeService.getMine());
 	}
 
-	@PostMapping
-	public ResponseEntity<GradeResponse> create(@Valid @RequestBody GradeRequest request) {
-		return ResponseEntity.status(HttpStatus.CREATED).body(gradeService.create(request));
+	@PostMapping("/bulk")
+	public ResponseEntity<List<GradeResponse>> createBulk(@Valid @RequestBody BulkGradeRequest request) {
+		return ResponseEntity.status(HttpStatus.CREATED).body(gradeService.createBulk(request));
 	}
 
 	@PutMapping("/{id}")
 	public ResponseEntity<GradeResponse> update(@PathVariable Long id, @Valid @RequestBody GradeRequest request) {
 		return ResponseEntity.ok(gradeService.update(id, request));
+	}
+
+	@PutMapping("/{id}/validate")
+	public ResponseEntity<GradeResponse> validate(@PathVariable Long id, @Valid @RequestBody ValidateGradeRequest request) {
+		return ResponseEntity.ok(gradeService.validate(id, request));
 	}
 
 	@DeleteMapping("/{id}")

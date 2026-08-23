@@ -45,6 +45,21 @@ public class Grade {
 	@Column(nullable = false, length = 20)
 	private String academicYear;
 
+	@Enumerated(EnumType.STRING)
+	@Column(nullable = false, length = 15)
+	private GradeStatus status = GradeStatus.PENDING;
+
+	@Column(length = 255)
+	private String submittedBy;
+
+	@Column(length = 500)
+	private String reviewComment;
+
+	private Instant reviewedAt;
+
+	@Column(length = 255)
+	private String reviewedBy;
+
 	@Column(nullable = false, updatable = false)
 	private Instant createdAt;
 
@@ -120,5 +135,45 @@ public class Grade {
 
 	public Instant getCreatedAt() {
 		return createdAt;
+	}
+
+	public GradeStatus getStatus() {
+		return status;
+	}
+
+	public void setStatus(GradeStatus status) {
+		this.status = status;
+	}
+
+	public String getSubmittedBy() {
+		return submittedBy;
+	}
+
+	public void setSubmittedBy(String submittedBy) {
+		this.submittedBy = submittedBy;
+	}
+
+	public String getReviewComment() {
+		return reviewComment;
+	}
+
+	public void setReviewComment(String reviewComment) {
+		this.reviewComment = reviewComment;
+	}
+
+	public Instant getReviewedAt() {
+		return reviewedAt;
+	}
+
+	public void setReviewedAt(Instant reviewedAt) {
+		this.reviewedAt = reviewedAt;
+	}
+
+	public String getReviewedBy() {
+		return reviewedBy;
+	}
+
+	public void setReviewedBy(String reviewedBy) {
+		this.reviewedBy = reviewedBy;
 	}
 }

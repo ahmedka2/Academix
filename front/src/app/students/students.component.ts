@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject } from '@angular/core';
-import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { ClassesService } from '../classes/classes.service';
 import { AuthService } from '../core/auth.service';
@@ -34,6 +34,10 @@ export class StudentsComponent implements OnInit {
   passwordVisible = false;
   editingStudent: StudentResponse | null = null;
   studentPendingDeletion: StudentResponse | null = null;
+
+  private lastSearchTerm = '';
+  attemptedCreate = false;
+  attemptedEdit = false;
 
   studentForm = this.fb.nonNullable.group({
     firstName: ['', [Validators.required]],
@@ -72,8 +76,22 @@ export class StudentsComponent implements OnInit {
       : this.students();
   }
 
+  get hasActiveFilter(): boolean {
+    return this.classFilter !== 0 || !!this.lastSearchTerm;
+  }
+
+  fieldError(control: AbstractControl | null | undefined, attempted: boolean): string | null {
+    if (!control || !control.errors || !(control.touched || attempted)) return null;
+    if (control.errors['required']) return 'This field is required.';
+    if (control.errors['email']) return 'Enter a valid email address.';
+    if (control.errors['minlength']) return `Must be at least ${control.errors['minlength'].requiredLength} characters.`;
+    return 'This value is invalid.';
+  }
+
   createStudent(): void {
+    this.attemptedCreate = true;
     if (this.studentForm.invalid) {
+      this.studentForm.markAllAsTouched();
       this.notifications.show('Fill all required student fields.', 'error');
       return;
     }
@@ -84,6 +102,7 @@ export class StudentsComponent implements OnInit {
       next: (student) => {
         this.notifications.show(`Created student ${student.firstName} ${student.lastName}.`, 'success');
         this.studentForm.reset({ classId: 0 });
+        this.attemptedCreate = false;
       },
       error: (error) => this.handleError(error, 'Could not create student.'),
       complete: () => this.loading = false
@@ -99,11 +118,19 @@ export class StudentsComponent implements OnInit {
   }
 
   searchStudents(): void {
+    this.lastSearchTerm = this.query.trim();
     this.loadingStudents = true;
     this.studentsService.search(this.query).subscribe({
       error: (error) => this.handleError(error, 'Search failed.'),
       complete: () => this.loadingStudents = false
     });
+  }
+
+  clearFilters(): void {
+    this.query = '';
+    this.classFilter = 0;
+    this.lastSearchTerm = '';
+    this.loadStudents();
   }
 
   trackStudent(_: number, student: StudentResponse): number {
@@ -112,6 +139,7 @@ export class StudentsComponent implements OnInit {
 
   startEditing(student: StudentResponse): void {
     this.editingStudent = student;
+    this.attemptedEdit = false;
     this.editForm.reset({
       firstName: student.firstName,
       lastName: student.lastName,
@@ -130,7 +158,9 @@ export class StudentsComponent implements OnInit {
   }
 
   updateStudent(): void {
+    this.attemptedEdit = true;
     if (!this.editingStudent || this.editForm.invalid) {
+      this.editForm.markAllAsTouched();
       this.notifications.show('Fill all required student fields.', 'error');
       return;
     }

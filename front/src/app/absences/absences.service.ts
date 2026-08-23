@@ -23,9 +23,9 @@ export class AbsencesService {
     );
   }
 
-  create(payload: Record<string, unknown>): Observable<AbsenceResponse> {
-    return this.http.post<AbsenceResponse>('/api/absences', payload).pipe(
-      tap((absence) => this.absencesSignal.update((absences) => [absence, ...absences]))
+  createBulk(payload: Record<string, unknown>): Observable<AbsenceResponse[]> {
+    return this.http.post<AbsenceResponse[]>('/api/absences/bulk', payload).pipe(
+      tap((created) => this.absencesSignal.update((absences) => [...created, ...absences]))
     );
   }
 

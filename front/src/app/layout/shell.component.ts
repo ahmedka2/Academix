@@ -19,6 +19,8 @@ const PAGE_TITLES: Record<string, { eyebrow: string; title: string }> = {
   '/grades': { eyebrow: 'Academics', title: 'Grades at a glance.' },
   '/absences': { eyebrow: 'Attendance', title: 'Absences at a glance.' },
   '/statistics': { eyebrow: 'Reporting', title: 'School-wide statistics.' },
+  '/documents': { eyebrow: 'Registrar', title: 'Administrative documents.' },
+  '/stage-documents': { eyebrow: 'Internships', title: 'Stage document review.' },
   '/me': { eyebrow: 'My space', title: 'Your academic record.' }
 };
 
@@ -68,6 +70,8 @@ export class ShellComponent {
   readonly canSeeGrades = computed(() => this.hasAnyRole('ADMINISTRATION', 'TEACHER'));
   readonly canSeeAbsences = computed(() => this.hasAnyRole('ADMINISTRATION', 'TEACHER'));
   readonly canSeeStatistics = computed(() => this.hasAnyRole('ADMINISTRATION'));
+  readonly canSeeDocuments = computed(() => this.hasAnyRole('ADMINISTRATION'));
+  readonly canSeeStageDocuments = computed(() => this.hasAnyRole('ADMINISTRATION'));
   readonly canSeeProfile = computed(() => this.hasAnyRole('STUDENT'));
 
   private hasAnyRole(...roles: string[]): boolean {

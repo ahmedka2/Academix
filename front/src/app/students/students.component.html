@@ -20,12 +20,18 @@
     </div>
 
     <form class="student-form" [formGroup]="studentForm" (ngSubmit)="createStudent()">
-      <label>First name<input formControlName="firstName" placeholder="e.g. Ines"></label>
-      <label>Last name<input formControlName="lastName" placeholder="e.g. Ben Salem"></label>
-      <label>National ID / CIN<input formControlName="cin" placeholder="12345678"></label>
-      <label>Email address<input type="email" formControlName="email" placeholder="student@school.edu"></label>
-      <label>Password<input [type]="passwordVisible ? 'text' : 'password'" formControlName="password"><button class="reveal" type="button" (click)="passwordVisible = !passwordVisible">{{ passwordVisible ? 'Hide' : 'Show' }}</button></label>
-      <label>Field of study<input formControlName="fieldOfStudy" placeholder="Computer Science"></label>
+      <label [class.invalid]="fieldError(studentForm.get('firstName'), attemptedCreate)">First name<input formControlName="firstName" placeholder="e.g. Ines"><small class="field-error" *ngIf="fieldError(studentForm.get('firstName'), attemptedCreate) as msg">{{ msg }}</small></label>
+      <label [class.invalid]="fieldError(studentForm.get('lastName'), attemptedCreate)">Last name<input formControlName="lastName" placeholder="e.g. Ben Salem"><small class="field-error" *ngIf="fieldError(studentForm.get('lastName'), attemptedCreate) as msg">{{ msg }}</small></label>
+      <label [class.invalid]="fieldError(studentForm.get('cin'), attemptedCreate)">National ID / CIN<input formControlName="cin" placeholder="12345678"><small class="field-error" *ngIf="fieldError(studentForm.get('cin'), attemptedCreate) as msg">{{ msg }}</small></label>
+      <label [class.invalid]="fieldError(studentForm.get('email'), attemptedCreate)">Email address<input type="email" formControlName="email" placeholder="student@school.edu"><small class="field-error" *ngIf="fieldError(studentForm.get('email'), attemptedCreate) as msg">{{ msg }}</small></label>
+      <label [class.invalid]="fieldError(studentForm.get('password'), attemptedCreate)">Password
+        <div class="password-field">
+          <input [type]="passwordVisible ? 'text' : 'password'" formControlName="password">
+          <button class="reveal" type="button" (click)="passwordVisible = !passwordVisible">{{ passwordVisible ? 'Hide' : 'Show' }}</button>
+        </div>
+        <small class="field-error" *ngIf="fieldError(studentForm.get('password'), attemptedCreate) as msg">{{ msg }}</small>
+      </label>
+      <label [class.invalid]="fieldError(studentForm.get('fieldOfStudy'), attemptedCreate)">Field of study<input formControlName="fieldOfStudy" placeholder="Computer Science"><small class="field-error" *ngIf="fieldError(studentForm.get('fieldOfStudy'), attemptedCreate) as msg">{{ msg }}</small></label>
       <label>Class <span class="optional">Optional</span><select formControlName="classId"><option [ngValue]="0">Unassigned</option><option *ngFor="let schoolClass of classes()" [ngValue]="schoolClass.id" [disabled]="schoolClass.studentCount >= schoolClass.capacity">{{ schoolClass.levelName }} — {{ schoolClass.name }} ({{ schoolClass.studentCount }}/{{ schoolClass.capacity }})</option></select></label>
       <button type="submit" class="primary-button wide submit-button" [disabled]="loading">{{ loading ? 'Creating student…' : 'Create student' }} <span>→</span></button>
     </form>
@@ -35,11 +41,15 @@
     <div class="panel-head">
       <div>
         <p class="eyebrow">Directory</p>
-        <h2>Students <span class="count">{{ studentCount }}</span></h2>
+        <h2>Students <span class="count">{{ filteredStudents.length }}</span></h2>
         <p>Search, review, and keep your academic records current.</p>
       </div>
       <div class="actions">
-        <div class="search-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input class="search" [(ngModel)]="query" (keyup.enter)="searchStudents()" placeholder="Search by name or student ID"></div>
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input class="search" [(ngModel)]="query" (keyup.enter)="searchStudents()" placeholder="Search by name or student ID">
+          <button type="button" class="clear-search" *ngIf="query" (click)="query = ''; searchStudents()" aria-label="Clear search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg></button>
+        </div>
         <select class="class-filter" [(ngModel)]="classFilter"><option [ngValue]="0">All classes</option><option *ngFor="let schoolClass of classes()" [ngValue]="schoolClass.id">{{ schoolClass.levelName }} — {{ schoolClass.name }}</option></select>
         <button type="button" class="ghost" [disabled]="loadingStudents" (click)="loadStudents()">{{ loadingStudents ? 'Loading…' : 'Refresh' }}</button>
         <button type="button" class="primary-button search-button" [disabled]="loadingStudents" (click)="searchStudents()">Search</button>
@@ -69,7 +79,14 @@
       </article>
     </div>
     <ng-template #emptyDirectory>
-      <div class="empty"><strong>{{ loadingStudents ? 'Loading your directory…' : 'No students found' }}</strong><span>{{ loadingStudents ? 'Please wait a moment.' : 'Create your first student record above.' }}</span></div>
+      <div class="empty" *ngIf="!loadingStudents && hasActiveFilter; else plainEmpty">
+        <strong>No students match your search</strong>
+        <span>Try a different name, ID, or class.</span>
+        <button type="button" class="ghost" (click)="clearFilters()">Clear filters</button>
+      </div>
+      <ng-template #plainEmpty>
+        <div class="empty"><strong>{{ loadingStudents ? 'Loading your directory…' : 'No students found' }}</strong><span>{{ loadingStudents ? 'Please wait a moment.' : 'Create your first student record above.' }}</span></div>
+      </ng-template>
     </ng-template>
   </section>
 </section>
@@ -82,12 +99,12 @@
     </div>
     <div class="readonly-id"><span>Student ID</span><strong>{{ editingStudent.studentIdentifier }}</strong><small>Generated automatically and cannot be changed.</small></div>
     <form class="student-form edit-form" [formGroup]="editForm" (ngSubmit)="updateStudent()">
-      <label>First name<input formControlName="firstName"></label>
-      <label>Last name<input formControlName="lastName"></label>
-      <label>National ID / CIN<input formControlName="cin"></label>
-      <label>Email address<input type="email" formControlName="email"></label>
+      <label [class.invalid]="fieldError(editForm.get('firstName'), attemptedEdit)">First name<input formControlName="firstName"><small class="field-error" *ngIf="fieldError(editForm.get('firstName'), attemptedEdit) as msg">{{ msg }}</small></label>
+      <label [class.invalid]="fieldError(editForm.get('lastName'), attemptedEdit)">Last name<input formControlName="lastName"><small class="field-error" *ngIf="fieldError(editForm.get('lastName'), attemptedEdit) as msg">{{ msg }}</small></label>
+      <label [class.invalid]="fieldError(editForm.get('cin'), attemptedEdit)">National ID / CIN<input formControlName="cin"><small class="field-error" *ngIf="fieldError(editForm.get('cin'), attemptedEdit) as msg">{{ msg }}</small></label>
+      <label [class.invalid]="fieldError(editForm.get('email'), attemptedEdit)">Email address<input type="email" formControlName="email"><small class="field-error" *ngIf="fieldError(editForm.get('email'), attemptedEdit) as msg">{{ msg }}</small></label>
       <label>Phone <span class="optional">Optional</span><input formControlName="phone"></label>
-      <label>Field of study<input formControlName="fieldOfStudy"></label>
+      <label [class.invalid]="fieldError(editForm.get('fieldOfStudy'), attemptedEdit)">Field of study<input formControlName="fieldOfStudy"><small class="field-error" *ngIf="fieldError(editForm.get('fieldOfStudy'), attemptedEdit) as msg">{{ msg }}</small></label>
       <label>Class <span class="optional">Optional</span><select formControlName="classId"><option [ngValue]="0">Unassigned</option><option *ngFor="let schoolClass of classes()" [ngValue]="schoolClass.id" [disabled]="schoolClass.studentCount >= schoolClass.capacity && schoolClass.id !== editingStudent.classId">{{ schoolClass.levelName }} — {{ schoolClass.name }} ({{ schoolClass.studentCount }}/{{ schoolClass.capacity }})</option></select></label>
       <label>Photo URL <span class="optional">Optional</span><input formControlName="photoUrl"></label>
       <label class="wide">Address <span class="optional">Optional</span><input formControlName="address"></label>

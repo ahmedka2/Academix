@@ -1,26 +1,59 @@
 .metrics { grid-template-columns:repeat(4,1fr); }
 
-.profile-grid { display:grid; grid-template-columns:minmax(300px,.7fr) minmax(0,1.3fr); gap:18px; align-items:start; flex:1 1 auto; }
-.profile-panel { min-width:0; }
-.profile-secondary { display:grid; gap:18px; min-width:0; }
+/* Section navbar — one file-folder tab per record type, flush against the
+   panel below so the active tab reads as the same surface continuing down. */
+.profile-tabs { display:flex; gap:4px; overflow-x:auto; scrollbar-width:none; border-bottom:1px solid var(--line); padding:0 2px; margin-bottom:16px; }
+.profile-tabs::-webkit-scrollbar { display:none; }
+.profile-tabs button { flex:0 0 auto; position:relative; top:1px; display:flex; align-items:center; gap:7px; padding:10px 15px 11px; border:1px solid transparent; border-bottom:0; border-radius:8px 8px 0 0; background:transparent; color:var(--muted); font:inherit; font-size:.8rem; font-weight:650; white-space:nowrap; cursor:pointer; transition:background-color .15s, color .15s; }
+.profile-tabs button svg { flex:0 0 auto; width:16px; height:16px; }
+.profile-tabs button:hover { background:var(--surface-sunken); color:#463f31; }
+.profile-tabs button.active { background:var(--paper); border-color:var(--line); color:var(--ink); }
+.tab-count { display:inline-grid; place-items:center; min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:var(--surface-sunken); color:var(--muted); font-family:"IBM Plex Mono",monospace; font-size:.62rem; font-weight:700; }
+.profile-tabs button.active .tab-count { background:var(--accent-soft); color:var(--accent-dark); }
+.tab-count.tab-count-warning { background:var(--danger-bg); color:var(--danger); }
 
-.profile-name { display:flex; align-items:center; gap:10px; margin-bottom:18px; color:#2c2618; }
-.profile-avatar { display:grid; place-items:center; flex:0 0 auto; border-radius:50%; background:var(--accent-soft); color:var(--accent-dark); font-family:"IBM Plex Mono",monospace; font-weight:700; width:44px; height:44px; font-size:.78rem; }
-.profile-photo { flex:0 0 auto; width:44px; height:44px; object-fit:cover; border-radius:50%; background:var(--accent-soft); }
-.profile-name h3 { margin:0 0 5px; color:#2c2618; font-size:.98rem; letter-spacing:-.01em; }
-.id-pill { padding:4px 7px; border-radius:6px; color:var(--muted); background:var(--surface-sunken); font-family:"IBM Plex Mono",monospace; font-size:.64rem; font-weight:600; }
+.profile-panels { flex:1 1 auto; }
+.profile-panels .panel { min-width:0; }
 
-.photo-wrap { position:relative; flex:0 0 auto; width:44px; height:44px; }
+/* Signature: the profile tab reads as an actual student ID / library card —
+   this app's one page that's about a person's identity, not a list of
+   records, so it earns a physical artifact none of the other tabs use. */
+.id-layout { display:grid; grid-template-columns:minmax(300px,1.15fr) minmax(230px,.85fr); gap:20px; align-items:start; }
+
+.id-card { position:relative; padding:22px 24px 20px; border:1px solid var(--line); border-radius:var(--radius-lg); background:linear-gradient(155deg,#fffdf6 0%,var(--paper) 55%); box-shadow:var(--shadow-sm); }
+.id-card-kicker { margin:0 0 18px; color:var(--subtle); font-family:"IBM Plex Mono",monospace; font-size:.62rem; font-weight:700; letter-spacing:.13em; text-transform:uppercase; }
+
+.id-card-photo-row { display:flex; align-items:center; gap:16px; }
+.id-photo-frame { position:relative; flex:0 0 auto; width:76px; height:76px; }
+.id-photo,.id-photo-initials { display:block; width:76px; height:76px; border-radius:10px; object-fit:cover; }
+.id-photo-initials { display:grid; place-items:center; background:var(--accent-soft); color:var(--accent-dark); font-family:"IBM Plex Mono",monospace; font-weight:700; font-size:1.15rem; }
+/* Photo-corner mounts, like a print glued into an album page — kept off the
+   bottom-right corner, where the camera upload badge already sits. */
+.id-photo-frame::before,.id-photo-frame::after { content:""; position:absolute; width:14px; height:14px; pointer-events:none; border-color:var(--accent); opacity:.5; }
+.id-photo-frame::before { top:-4px; left:-4px; border-style:solid; border-width:2px 0 0 2px; }
+.id-photo-frame::after { bottom:-4px; left:-4px; border-style:solid; border-width:0 0 2px 2px; }
+.id-photo-frame .photo-upload { width:24px; height:24px; }
+.id-photo-frame .photo-upload svg { width:13px; height:13px; }
+
+.id-card-name h3 { margin:0 0 6px; color:var(--ink); font-size:1.15rem; letter-spacing:-.01em; }
+.id-card-number { display:inline-block; padding:3px 8px; border-radius:4px; background:var(--surface-sunken); color:var(--accent-dark); font-family:"IBM Plex Mono",monospace; font-size:.78rem; font-weight:700; letter-spacing:.02em; }
+
+.id-barcode { display:flex; align-items:flex-end; gap:2px; height:24px; margin:20px 0 16px; }
+.id-barcode span { display:block; height:100%; border-radius:1px; background:var(--ink); opacity:.5; }
+
+.id-card-fine-print { display:flex; flex-wrap:wrap; gap:16px 24px; margin:0; padding-top:14px; border-top:1px dashed var(--line); }
+.id-card-fine-print dt { margin:0 0 3px; color:var(--subtle); font-family:"IBM Plex Mono",monospace; font-size:.58rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
+.id-card-fine-print dd { margin:0; color:#544c3c; font-size:.76rem; font-weight:600; }
+
+.contact-card { padding:22px 24px; border:1px solid var(--line); border-radius:var(--radius-lg); background:var(--paper); }
+.contact-card dl { display:grid; gap:16px; margin:0; }
+.contact-card dt { margin:0 0 3px; color:var(--subtle); font-family:"IBM Plex Mono",monospace; font-size:.58rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
+.contact-card dd { overflow:hidden; margin:0; color:#544c3c; font-size:.82rem; text-overflow:ellipsis; }
 .photo-upload { position:absolute; right:-4px; bottom:-4px; display:grid; place-items:center; width:20px; height:20px; border-radius:50%; border:2px solid var(--paper); color:#fff; background:var(--accent); cursor:pointer; }
 .photo-upload.uploading { opacity:.6; pointer-events:none; }
 .photo-upload input { position:absolute; width:0; height:0; opacity:0; }
 .photo-upload svg { width:11px; height:11px; }
 
-.profile-details { display:grid; grid-template-columns:1fr 1fr; gap:15px 12px; }
-.profile-details div { min-width:0; }
-.profile-details .full-detail { grid-column:1/-1; }
-.profile-details dt { margin:0 0 3px; color:var(--subtle); font-family:"IBM Plex Mono",monospace; font-size:.58rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
-.profile-details dd { overflow:hidden; margin:0; color:#544c3c; font-size:.78rem; text-overflow:ellipsis; }
 .phone-view { display:flex; align-items:center; gap:8px; overflow:visible; }
 .phone-view .text-action { font-size:.68rem; }
 .phone-edit { display:flex; flex-wrap:wrap; align-items:center; gap:8px; overflow:visible; }
@@ -31,47 +64,52 @@
 .semester-filters button { padding:5px 9px; border:0; border-radius:var(--radius-sm); color:var(--muted); background:var(--surface-sunken); font:inherit; font-family:"IBM Plex Mono",monospace; font-size:.66rem; font-weight:700; letter-spacing:.02em; cursor:pointer; }
 .semester-filters button.active { color:var(--accent-dark); background:var(--accent-soft); }
 
-.grade-cards { display:grid; gap:9px; }
-.grade-card { position:relative; display:flex; align-items:center; justify-content:space-between; gap:15px; padding:13px 14px 13px 24px; border:1px solid var(--line); border-radius:var(--radius-md); transition:box-shadow .15s; }
-.grade-card:hover { box-shadow:var(--shadow-sm); }
-.grade-card::before { content:""; position:absolute; left:13px; top:9px; bottom:9px; width:1px; background:var(--danger); opacity:.3; }
-.grade-card>div:first-child { display:grid; gap:4px; min-width:0; }
+/* Shared record-card box (grade/absence/invoice/document rows): one base rule
+   set rather than four near-identical copies, since these truly are the same
+   card just holding different fields. */
+.grade-card,.absence-card,.invoice-card,.document-card { position:relative; padding:13px 14px 13px 24px; border:1px solid var(--line); border-radius:var(--radius-md); transition:box-shadow .15s; }
+.grade-card,.invoice-card,.document-card { display:flex; align-items:center; justify-content:space-between; gap:15px; }
+.grade-card:hover,.absence-card:hover,.invoice-card:hover,.document-card:hover { box-shadow:var(--shadow-sm); }
+.grade-card::before,.absence-card::before,.invoice-card::before { content:""; position:absolute; left:13px; top:9px; bottom:9px; width:1px; background:var(--danger); opacity:.3; }
+.document-card::before { content:""; position:absolute; left:13px; top:9px; bottom:9px; width:1px; background:var(--accent); opacity:.3; }
+.grade-card>div:first-child,.absence-card-head>div,.invoice-card>div:first-child,.document-card>div:first-child { display:grid; gap:4px; min-width:0; }
+.grade-card small,.absence-card small,.invoice-card small,.document-card small { overflow:hidden; color:var(--subtle); font-size:.69rem; text-overflow:ellipsis; white-space:nowrap; }
+
+.grade-cards,.absence-cards,.invoice-cards,.document-cards { display:grid; gap:9px; }
 .subject-name { color:var(--accent); font-family:"IBM Plex Mono",monospace; font-size:.64rem; font-weight:700; letter-spacing:.03em; text-transform:uppercase; }
-.grade-card small { overflow:hidden; color:var(--subtle); font-size:.69rem; text-overflow:ellipsis; white-space:nowrap; }
 .grade-score { display:grid; justify-items:end; gap:5px; white-space:nowrap; }
 .grade-score strong { font-family:"IBM Plex Mono",monospace; font-size:.95rem; color:var(--ink); }
 .grade-score .coef { color:var(--subtle); font-size:.68rem; }
 
 .absences-panel { min-width:0; }
-.absence-cards { display:grid; gap:9px; }
-.absence-card { position:relative; padding:13px 14px 13px 24px; border:1px solid var(--line); border-radius:var(--radius-md); transition:box-shadow .15s; }
-.absence-card:hover { box-shadow:var(--shadow-sm); }
-.absence-card::before { content:""; position:absolute; left:13px; top:9px; bottom:9px; width:1px; background:var(--danger); opacity:.3; }
 .absence-card-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
-.absence-card-head>div { display:grid; gap:4px; min-width:0; }
-.absence-card small { overflow:hidden; color:var(--subtle); font-size:.69rem; text-overflow:ellipsis; white-space:nowrap; }
 .absence-comment,.absence-justification { margin:10px 0 0; color:#544c3c; font-size:.75rem; }
 .absence-justification strong { color:var(--ink); font-size:.75rem; }
 .absence-card .card-actions { padding-top:12px; margin-top:12px; border-top:1px solid var(--line); }
 
 .invoices-panel { min-width:0; }
-.invoice-cards { display:grid; gap:9px; }
-.invoice-card { position:relative; display:flex; align-items:center; justify-content:space-between; gap:15px; padding:13px 14px 13px 24px; border:1px solid var(--line); border-radius:var(--radius-md); transition:box-shadow .15s; }
-.invoice-card:hover { box-shadow:var(--shadow-sm); }
-.invoice-card::before { content:""; position:absolute; left:13px; top:9px; bottom:9px; width:1px; background:var(--danger); opacity:.3; }
-.invoice-card>div:first-child { display:grid; gap:4px; min-width:0; }
 .invoice-number { color:var(--accent); font-family:"IBM Plex Mono",monospace; font-size:.64rem; font-weight:700; letter-spacing:.03em; text-transform:uppercase; }
-.invoice-card small { color:var(--subtle); font-size:.69rem; }
 .invoice-amount { display:flex; align-items:center; gap:10px; white-space:nowrap; }
 .invoice-amount strong { font-family:"IBM Plex Mono",monospace; font-size:.85rem; color:var(--ink); }
 
+.documents-panel { min-width:0; }
+
+.stage-documents-panel { min-width:0; }
+.stage-slot-list { display:grid; gap:9px; }
+.stage-slot { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:13px 14px; border:1px solid var(--line); border-radius:var(--radius-md); }
+.stage-slot-info { display:grid; gap:6px; min-width:0; }
+.stage-slot-info strong { color:#2c2618; font-size:.82rem; }
+.stage-slot-comment { margin:0; color:var(--subtle); font-size:.72rem; }
+.stage-slot-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.upload-label { position:relative; cursor:pointer; }
+.upload-label.uploading { opacity:.6; pointer-events:none; }
+.upload-label input { position:absolute; width:0; height:0; opacity:0; }
+
 @media(max-width:1100px){
-  .profile-grid { grid-template-columns:1fr; }
   .metrics { grid-template-columns:1fr 1fr; }
 }
 @media(max-width:760px){
-  .profile-grid { display:block; }
-  .profile-panel { margin-bottom:15px; }
-  .profile-details { grid-template-columns:1fr; }
+  .id-layout { grid-template-columns:1fr; }
   .metrics { grid-template-columns:1fr; }
+  .profile-tabs button { padding:9px 12px 10px; font-size:.76rem; }
 }

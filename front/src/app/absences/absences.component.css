@@ -1,6 +1,30 @@
 .content-grid { display:grid; grid-template-columns:minmax(350px,.88fr) minmax(0,1.42fr); gap:18px; align-items:start; flex:1 1 auto; }
+.content-grid.single-column { grid-template-columns:1fr; }
 .create-panel { display:flex; flex-direction:column; position:sticky; top:20px; }
 .absence-form { display:grid; grid-template-columns:1fr 1fr; gap:15px 13px; }
+
+.assignment-list { display:grid; gap:9px; }
+.assignment-option { display:grid; gap:3px; padding:12px 14px; border:1px solid var(--line); border-radius:var(--radius-md); background:#fff; text-align:left; cursor:pointer; transition:box-shadow .15s, border-color .15s; }
+.assignment-option:hover { border-color:var(--accent); box-shadow:var(--shadow-sm); }
+.assignment-option strong { color:#2c2618; font-size:.82rem; }
+.assignment-option span { color:var(--muted); font-size:.72rem; }
+.assignment-option small { color:var(--subtle); font-size:.66rem; }
+
+.roll-call-form { display:flex; flex-direction:column; gap:14px; }
+.roll-call-head { display:flex; align-items:center; justify-content:space-between; gap:10px; padding-bottom:10px; border-bottom:1px solid var(--line); }
+.roll-call-head strong { display:block; color:#2c2618; font-size:.86rem; }
+.roll-call-head span { color:var(--subtle); font-size:.7rem; }
+
+.roster-table { display:grid; gap:6px; max-height:340px; overflow-y:auto; }
+.roster-row { display:grid; grid-template-columns:1fr 80px 80px; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--line); border-radius:var(--radius-sm); }
+.roster-row.roster-header { border:0; padding:0 10px; color:var(--subtle); font-family:"IBM Plex Mono",monospace; font-size:.62rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; text-align:center; }
+.roster-row.roster-header span:first-child { text-align:left; }
+.roster-row span { display:grid; gap:2px; color:#2c2618; font-size:.8rem; min-width:0; }
+.roster-row small { color:var(--subtle); font-size:.66rem; }
+.presence-toggle { height:32px; border:1px solid var(--line); border-radius:var(--radius-sm); background:var(--surface-sunken); color:var(--muted); font:inherit; font-size:.68rem; font-weight:700; cursor:pointer; }
+.presence-toggle.active { border-color:var(--success); color:#fff; background:var(--success); }
+.presence-toggle.absent.active { border-color:var(--danger); background:var(--danger); }
+.submit-button { margin-top:4px; }
 
 .absences-panel { min-width:0; }
 .status-filters { display:flex; flex-wrap:wrap; gap:6px; margin:-8px 0 15px; }
@@ -26,14 +50,6 @@
 .card-actions .ghost { height:31px; font-size:.7rem; }
 .card-actions .text-action { font-size:.7rem; }
 
-.student-picker { position:relative; }
-.student-suggestions { position:absolute; z-index:5; top:calc(100% + 4px); right:0; left:0; overflow:hidden; border:1px solid var(--line); border-radius:var(--radius-sm); background:#fff; box-shadow:var(--shadow-md); }
-.student-suggestions button { display:flex; width:100%; justify-content:space-between; gap:12px; padding:10px; border:0; border-bottom:1px solid var(--surface-sunken); color:#3a3324; background:#fff; font:inherit; text-align:left; cursor:pointer; }
-.student-suggestions button:last-child { border-bottom:0; }
-.student-suggestions button:hover { background:var(--accent-soft); }
-.student-suggestions strong { font-size:.74rem; }
-.student-suggestions span { color:var(--subtle); font-family:"IBM Plex Mono",monospace; font-size:.66rem; }
-
 @media(max-width:1100px){
   .content-grid { grid-template-columns:1fr; }
   .absences-panel { order:-1; }
@@ -45,4 +61,5 @@
   .absence-form { grid-template-columns:1fr; }
   .absence-card-head { flex-direction:column; }
   .absence-badges { align-items:flex-start; }
+  .roster-row { grid-template-columns:1fr 60px 60px; }
 }

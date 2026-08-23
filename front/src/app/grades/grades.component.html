@@ -5,28 +5,53 @@
   </article>
   <article class="metric-card">
     <span class="metric-icon success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></span>
-    <div><span>Overall average</span><strong>{{ overallAverage | number:'1.2-2' }}/20</strong></div><small>Weighted by coefficient</small>
+    <div><span>Overall average</span><strong>{{ overallAverage | number:'1.2-2' }}/20</strong></div><small>Approved grades only</small>
+  </article>
+  <article class="metric-card">
+    <span class="metric-icon warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span>
+    <div><span>Pending approval</span><strong>{{ pendingCount }}</strong></div><small>Awaiting a decision</small>
   </article>
 </section>
 
-<section class="content-grid">
-  <article class="panel create-panel">
+<section class="content-grid" [class.single-column]="!isTeacher()">
+  <article class="panel create-panel" *ngIf="isTeacher()">
     <div class="panel-head">
       <div>
-        <p class="eyebrow">New record</p>
-        <h2>Record a grade</h2>
-        <p>Enter a subject score for a student.</p>
+        <p class="eyebrow">Roll call</p>
+        <h2>Submit grades</h2>
+        <p>Pick one of your classes to grade the whole roster at once.</p>
       </div>
     </div>
 
-    <form class="grade-form" [formGroup]="gradeForm" (ngSubmit)="createGrade()">
-      <label class="wide">Student<div class="student-picker"><input [(ngModel)]="gradeStudentQuery" [ngModelOptions]="{standalone: true}" placeholder="Type a student name or ID" autocomplete="off"><div class="student-suggestions" *ngIf="gradeStudentSuggestions.length"><button type="button" *ngFor="let student of gradeStudentSuggestions" (click)="selectGradeStudent(student)"><strong>{{ student.firstName }} {{ student.lastName }}</strong><span>{{ student.studentIdentifier }}</span></button></div></div></label>
-      <label class="wide">Subject<input formControlName="subject" placeholder="e.g. Algorithms"></label>
-      <label>Score (/20)<input type="number" min="0" max="20" step="0.25" formControlName="score"></label>
-      <label>Coefficient<input type="number" min="0.1" max="10" step="0.5" formControlName="coefficient"></label>
-      <label>Semester<select formControlName="semester"><option value="S1">Semester 1</option><option value="S2">Semester 2</option></select></label>
-      <label>Academic year<input formControlName="academicYear" placeholder="2025-2026"></label>
-      <button type="submit" class="primary-button wide submit-button" [disabled]="loading">{{ loading ? 'Saving…' : 'Record grade' }} <span>→</span></button>
+    <div class="assignment-list" *ngIf="!selectedAssignment">
+      <button type="button" class="assignment-option" *ngFor="let assignment of myClasses()" (click)="selectAssignment(assignment)">
+        <strong>{{ assignment.className }}</strong>
+        <span>{{ assignment.levelName }} · {{ assignment.subject }}</span>
+        <small>{{ assignment.studentCount }} student(s)</small>
+      </button>
+      <div class="empty" *ngIf="!myClasses().length"><strong>No classes assigned</strong><span>Ask an administrator to assign you to a class.</span></div>
+    </div>
+
+    <form class="roll-call-form" *ngIf="selectedAssignment" [formGroup]="rollCallForm" (ngSubmit)="submitRollCall()">
+      <div class="roll-call-head">
+        <div><strong>{{ selectedAssignment.className }}</strong><span>{{ selectedAssignment.subject }}</span></div>
+        <button type="button" class="text-action" (click)="clearAssignment()">Change class</button>
+      </div>
+      <div class="roll-call-fields">
+        <label>Semester<select formControlName="semester"><option value="S1">Semester 1</option><option value="S2">Semester 2</option></select></label>
+        <label>Academic year<input formControlName="academicYear" placeholder="2025-2026"></label>
+        <label>Coefficient<input type="number" min="0.1" max="10" step="0.5" formControlName="coefficient"></label>
+      </div>
+      <div class="roster-table" *ngIf="!loadingRoster; else loadingRosterTpl">
+        <div class="roster-row roster-header"><span>Student</span><span>Score /20</span></div>
+        <div class="roster-row" *ngFor="let student of roster">
+          <span>{{ student.firstName }} {{ student.lastName }}<small>{{ student.studentIdentifier }}</small></span>
+          <input type="number" min="0" max="20" step="0.25" placeholder="Skip" [(ngModel)]="scoreDrafts[student.id]" [ngModelOptions]="{standalone: true}">
+        </div>
+        <div class="empty" *ngIf="!roster.length"><strong>No students in this class</strong><span>This class has no roster yet.</span></div>
+      </div>
+      <ng-template #loadingRosterTpl><div class="empty"><strong>Loading roster…</strong></div></ng-template>
+      <button type="submit" class="primary-button wide submit-button" [disabled]="submitting || !roster.length">{{ submitting ? 'Submitting…' : 'Submit for review' }} <span>→</span></button>
     </form>
   </article>
 
@@ -35,26 +60,39 @@
       <div>
         <p class="eyebrow">History</p>
         <h2>Grades <span class="count">{{ totalGrades }}</span></h2>
-        <p>Review and manage recorded grades.</p>
+        <p>Review recorded grades{{ isAdmin() ? ' and approve submissions' : '' }}.</p>
       </div>
       <button type="button" class="ghost" (click)="loadGrades()">Refresh</button>
     </div>
 
     <div class="semester-filters"><button type="button" [class.active]="semesterFilter === 'ALL'" (click)="semesterFilter = 'ALL'">All</button><button type="button" [class.active]="semesterFilter === 'S1'" (click)="semesterFilter = 'S1'">Semester 1</button><button type="button" [class.active]="semesterFilter === 'S2'" (click)="semesterFilter = 'S2'">Semester 2</button></div>
+    <div class="status-filters"><button type="button" [class.active]="statusFilter === 'ALL'" (click)="statusFilter = 'ALL'">All statuses</button><button type="button" [class.active]="statusFilter === 'PENDING'" (click)="statusFilter = 'PENDING'">Pending</button><button type="button" [class.active]="statusFilter === 'APPROVED'" (click)="statusFilter = 'APPROVED'">Approved</button><button type="button" [class.active]="statusFilter === 'REJECTED'" (click)="statusFilter = 'REJECTED'">Rejected</button></div>
 
     <div class="grade-cards" *ngIf="filteredGrades.length; else emptyGrades">
       <article class="grade-card" *ngFor="let grade of filteredGrades">
-        <div><span class="subject-name">{{ grade.subject }}</span><strong>{{ grade.studentName }}</strong><small>{{ grade.studentIdentifier }} · {{ grade.semester === 'S1' ? 'Semester 1' : 'Semester 2' }} · {{ grade.academicYear }}</small></div>
+        <div>
+          <span class="subject-name">{{ grade.subject }}</span>
+          <strong>{{ grade.studentName }}</strong>
+          <small>{{ grade.studentIdentifier }} · {{ grade.semester === 'S1' ? 'Semester 1' : 'Semester 2' }} · {{ grade.academicYear }}</small>
+          <p class="review-comment" *ngIf="grade.reviewComment">{{ grade.reviewComment }}</p>
+        </div>
         <div class="grade-score">
+          <span class="stamp" [class.stamp-good]="grade.status === 'APPROVED'" [class.stamp-bad]="grade.status === 'REJECTED'">{{ grade.status }}</span>
           <strong>{{ grade.score | number:'1.2-2' }}/20</strong>
-          <span class="stamp" [class.stamp-good]="grade.score >= 10" [class.stamp-bad]="grade.score < 10">{{ grade.score >= 10 ? 'Pass' : 'Fail' }}</span>
           <span class="coef">Coef. {{ grade.coefficient }}</span>
         </div>
-        <div class="grade-actions"><button type="button" class="text-action" (click)="startEditingGrade(grade)">Edit</button><button type="button" class="text-action danger" (click)="requestGradeDelete(grade)">Delete</button></div>
+        <div class="grade-actions">
+          <ng-container *ngIf="isAdmin() && grade.status === 'PENDING'">
+            <button type="button" class="text-action" (click)="approveGrade(grade)">Approve</button>
+            <button type="button" class="text-action danger" (click)="startRejectGrade(grade)">Reject</button>
+          </ng-container>
+          <button type="button" class="text-action" (click)="startEditingGrade(grade)">Edit</button>
+          <button type="button" class="text-action danger" (click)="requestGradeDelete(grade)">Delete</button>
+        </div>
       </article>
     </div>
     <ng-template #emptyGrades>
-      <div class="empty"><strong>No grades yet</strong><span>Record the first grade using the form.</span></div>
+      <div class="empty"><strong>No grades yet</strong><span>{{ isTeacher() ? 'Submit grades using the roll call form.' : 'No grades have been submitted yet.' }}</span></div>
     </ng-template>
   </section>
 </section>
@@ -62,14 +100,28 @@
 <div class="modal-backdrop" *ngIf="editingGrade">
   <section class="modal" role="dialog" aria-modal="true" aria-labelledby="grade-edit-title">
     <div class="modal-head"><div><p class="eyebrow">History</p><h2 id="grade-edit-title">Edit grade</h2></div><button type="button" class="close-button" (click)="cancelGradeEditing()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg></button></div>
+    <div class="readonly-id"><span>Student</span><strong>{{ editingGrade.studentName }}</strong><small>{{ editingGrade.studentIdentifier }}</small></div>
     <form class="grade-form" [formGroup]="editGradeForm" (ngSubmit)="updateGrade()">
-      <label class="wide">Student<div class="student-picker"><input [(ngModel)]="editGradeStudentQuery" [ngModelOptions]="{standalone: true}" placeholder="Type a student name or ID" autocomplete="off"><div class="student-suggestions" *ngIf="editGradeStudentSuggestions.length"><button type="button" *ngFor="let student of editGradeStudentSuggestions" (click)="selectGradeStudent(student, true)"><strong>{{ student.firstName }} {{ student.lastName }}</strong><span>{{ student.studentIdentifier }}</span></button></div></div></label>
       <label class="wide">Subject<input formControlName="subject"></label>
       <label>Score (/20)<input type="number" min="0" max="20" step="0.25" formControlName="score"></label>
       <label>Coefficient<input type="number" min="0.1" max="10" step="0.5" formControlName="coefficient"></label>
       <label>Semester<select formControlName="semester"><option value="S1">Semester 1</option><option value="S2">Semester 2</option></select></label>
       <label>Academic year<input formControlName="academicYear" placeholder="2025-2026"></label>
       <div class="modal-actions wide"><button type="button" class="ghost" (click)="cancelGradeEditing()">Cancel</button><button type="submit" class="primary-button" [disabled]="loading">{{ loading ? 'Saving…' : 'Save changes' }}</button></div>
+    </form>
+  </section>
+</div>
+
+<div class="modal-backdrop" *ngIf="rejectTarget">
+  <section class="modal" role="dialog" aria-modal="true" aria-labelledby="grade-reject-title">
+    <div class="modal-head"><div><p class="eyebrow">Review</p><h2 id="grade-reject-title">Reject grade</h2></div><button type="button" class="close-button" (click)="cancelRejectGrade()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg></button></div>
+    <p>{{ rejectTarget.subject }} for {{ rejectTarget.studentName }}</p>
+    <form (ngSubmit)="confirmRejectGrade()">
+      <label class="wide">Reason <span class="optional">Optional</span><textarea rows="4" [(ngModel)]="rejectComment" name="rejectComment" placeholder="Explain what needs to be corrected" [ngModelOptions]="{standalone: true}"></textarea></label>
+      <div class="modal-actions wide">
+        <button type="button" class="ghost" (click)="cancelRejectGrade()">Cancel</button>
+        <button type="submit" class="danger-button">Reject</button>
+      </div>
     </form>
   </section>
 </div>

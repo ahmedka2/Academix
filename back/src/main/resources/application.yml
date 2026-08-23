@@ -15,8 +15,8 @@ spring:
         dialect: org.hibernate.dialect.MySQLDialect
   servlet:
     multipart:
-      max-file-size: 2MB
-      max-request-size: 2MB
+      max-file-size: 10MB
+      max-request-size: 10MB
 server:
   port: ${SERVER_PORT:8080}
   error:
@@ -35,3 +35,10 @@ app:
       password: ${ADMIN_PASSWORD:admin12345}
   uploads:
     directory: ${UPLOADS_DIR:../front/public/profile_picture}
+  documents:
+    directory: ${DOCUMENTS_DIR:./documents-storage}
+  stage-documents:
+    directory: ${STAGE_DOCUMENTS_DIR:./stage-documents-storage}
+  institution:
+    name: ${INSTITUTION_NAME:Académix}
+    address: ${INSTITUTION_ADDRESS:123 Avenue de l'Éducation, Tunis}

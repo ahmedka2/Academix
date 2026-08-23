@@ -4,7 +4,8 @@
 .content-grid.single-column { grid-template-columns:1fr; }
 .create-panel { display:flex; flex-direction:column; position:sticky; top:20px; }
 .student-form { display:grid; grid-template-columns:1fr 1fr; gap:15px 13px; }
-.reveal { position:absolute; right:7px; bottom:7px; padding:3px; color:var(--accent); border:0; background:transparent; font:inherit; font-size:.68rem; font-weight:700; cursor:pointer; }
+.password-field { position:relative; }
+.reveal { position:absolute; right:7px; top:50%; transform:translateY(-50%); padding:3px; color:var(--accent); border:0; background:transparent; font:inherit; font-size:.68rem; font-weight:700; cursor:pointer; }
 .submit-button { margin-top:2px; }
 
 .students-panel { min-width:0; }
@@ -13,6 +14,9 @@
 .search-box svg { flex:0 0 auto; width:15px; height:15px; }
 .search-box:focus-within { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
 .search { width:180px; height:34px; padding:0; border:0; box-shadow:none!important; }
+.clear-search { display:grid; place-items:center; flex:0 0 auto; width:20px; height:20px; padding:0; border:0; border-radius:50%; color:var(--subtle); background:transparent; cursor:pointer; }
+.clear-search svg { width:12px; height:12px; }
+.clear-search:hover { background:var(--surface-sunken); color:var(--ink); }
 .search-button { box-shadow:none; }
 .class-filter { width:auto; height:38px; font-size:.72rem; }
 

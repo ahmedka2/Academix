@@ -2,11 +2,12 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 
+import { MyClassAssignmentResponse } from '../classes/class.model';
+import { ClassesService } from '../classes/classes.service';
 import { AuthService } from '../core/auth.service';
 import { NotificationService } from '../core/notification.service';
 import { extractErrorMessage } from '../core/http-error.util';
 import { StudentResponse } from '../students/student.model';
-import { StudentsService } from '../students/students.service';
 import { AbsenceResponse, AbsenceStatus } from './absence.model';
 import { AbsencesService } from './absences.service';
 
@@ -22,36 +23,40 @@ const UNJUSTIFIED_THRESHOLD = 3;
 export class AbsencesComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly absencesService = inject(AbsencesService);
-  private readonly studentsService = inject(StudentsService);
+  private readonly classesService = inject(ClassesService);
   private readonly authService = inject(AuthService);
   private readonly notifications = inject(NotificationService);
 
   readonly absences = this.absencesService.absences;
+  readonly myClasses = this.classesService.myClasses;
   readonly isAdmin = computed(() => this.authService.user()?.role === 'ADMINISTRATION');
+  readonly isTeacher = computed(() => this.authService.user()?.role === 'TEACHER');
 
   loading = false;
+  submitting = false;
   statusFilter: 'ALL' | AbsenceStatus = 'ALL';
   editingAbsence: AbsenceResponse | null = null;
   absencePendingDeletion: AbsenceResponse | null = null;
-  absenceStudentQuery = '';
-  editAbsenceStudentQuery = '';
 
-  absenceForm = this.fb.nonNullable.group({
-    studentId: [0, [Validators.min(1)]],
-    subject: ['', [Validators.required]],
-    date: [this.today(), [Validators.required]],
-    comment: ['']
+  selectedAssignment: MyClassAssignmentResponse | null = null;
+  roster: StudentResponse[] = [];
+  loadingRoster = false;
+  absentDrafts: Record<number, boolean> = {};
+
+  rollCallForm = this.fb.nonNullable.group({
+    date: [this.today(), [Validators.required]]
   });
 
   editAbsenceForm = this.fb.nonNullable.group({
-    studentId: [0, [Validators.min(1)]],
     subject: ['', [Validators.required]],
     date: ['', [Validators.required]],
     comment: ['']
   });
 
   ngOnInit(): void {
-    this.studentsService.load().subscribe();
+    if (this.isTeacher()) {
+      this.classesService.loadMine().subscribe();
+    }
     this.loadAbsences();
   }
 
@@ -81,57 +86,67 @@ export class AbsencesComponent implements OnInit {
     return this.unjustifiedCountFor(studentId) >= UNJUSTIFIED_THRESHOLD;
   }
 
-  get absenceStudentSuggestions(): StudentResponse[] {
-    return this.studentsService.suggestionsFor(this.absenceStudentQuery);
-  }
-
-  get editAbsenceStudentSuggestions(): StudentResponse[] {
-    return this.studentsService.suggestionsFor(this.editAbsenceStudentQuery);
-  }
-
-  createAbsence(): void {
-    if (this.absenceForm.invalid) {
-      this.notifications.show('Select a student and enter a valid absence.', 'error');
-      return;
-    }
-    this.loading = true;
-    this.absencesService.create(this.absenceForm.getRawValue()).subscribe({
-      next: (absence) => {
-        this.notifications.show(`Declared absence for ${absence.studentName}.`, 'success');
-        this.absenceForm.reset({ studentId: 0, subject: '', date: this.today(), comment: '' });
-        this.absenceStudentQuery = '';
-      },
-      error: (error) => this.handleError(error, 'Could not declare absence.'),
-      complete: () => this.loading = false
-    });
-  }
-
   loadAbsences(): void {
     this.absencesService.load().subscribe({
       error: (error) => this.handleError(error, 'Could not load absences.')
     });
   }
 
-  selectAbsenceStudent(student: StudentResponse, editing = false): void {
-    const label = `${student.firstName} ${student.lastName} · ${student.studentIdentifier}`;
-    if (editing) {
-      this.editAbsenceForm.patchValue({ studentId: student.id });
-      this.editAbsenceStudentQuery = label;
+  selectAssignment(assignment: MyClassAssignmentResponse): void {
+    this.selectedAssignment = assignment;
+    this.absentDrafts = {};
+    this.loadingRoster = true;
+    this.classesService.getRoster(assignment.classId).subscribe({
+      next: (roster) => this.roster = roster,
+      error: (error) => this.handleError(error, 'Could not load the class roster.'),
+      complete: () => this.loadingRoster = false
+    });
+  }
+
+  clearAssignment(): void {
+    this.selectedAssignment = null;
+    this.roster = [];
+    this.absentDrafts = {};
+  }
+
+  toggleAbsent(studentId: number, absent: boolean): void {
+    this.absentDrafts[studentId] = absent;
+  }
+
+  submitRollCall(): void {
+    const assignment = this.selectedAssignment;
+    if (!assignment || this.rollCallForm.invalid) {
+      this.notifications.show('Select a valid date.', 'error');
       return;
     }
-    this.absenceForm.patchValue({ studentId: student.id });
-    this.absenceStudentQuery = label;
+    const absentStudentIds = this.roster.filter((student) => this.absentDrafts[student.id]).map((student) => student.id);
+    if (!absentStudentIds.length) {
+      this.notifications.show('No students marked absent — nothing to record.', 'error');
+      return;
+    }
+    this.submitting = true;
+    this.absencesService.createBulk({
+      classId: assignment.classId,
+      subject: assignment.subject,
+      date: this.rollCallForm.getRawValue().date,
+      absentStudentIds
+    }).subscribe({
+      next: (created) => {
+        this.notifications.show(`Recorded ${created.length} absence(s).`, 'success');
+        this.absentDrafts = {};
+      },
+      error: (error) => this.handleError(error, 'Could not record absences.'),
+      complete: () => this.submitting = false
+    });
   }
 
   startEditing(absence: AbsenceResponse): void {
     this.editingAbsence = absence;
     this.editAbsenceForm.reset({
-      studentId: absence.studentId,
       subject: absence.subject,
       date: absence.date,
       comment: absence.comment ?? ''
     });
-    this.editAbsenceStudentQuery = `${absence.studentName} · ${absence.studentIdentifier}`;
   }
 
   cancelEditing(): void {
@@ -144,7 +159,10 @@ export class AbsencesComponent implements OnInit {
       return;
     }
     this.loading = true;
-    this.absencesService.update(this.editingAbsence.id, this.editAbsenceForm.getRawValue()).subscribe({
+    this.absencesService.update(this.editingAbsence.id, {
+      studentId: this.editingAbsence.studentId,
+      ...this.editAbsenceForm.getRawValue()
+    }).subscribe({
       next: (absence) => {
         this.editingAbsence = null;
         this.notifications.show(`Updated absence for ${absence.studentName}.`, 'success');
@@ -196,6 +214,7 @@ export class AbsencesComponent implements OnInit {
 
   private handleError(error: unknown, fallback: string): void {
     this.loading = false;
+    this.submitting = false;
     const message = extractErrorMessage(error) || fallback;
     this.notifications.show(message, 'error');
   }

@@ -14,12 +14,15 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 import java.time.Instant;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "absences")
+@Table(name = "absences", uniqueConstraints = {
+		@UniqueConstraint(name = "uk_absences_student_date_subject", columnNames = {"student_id", "date", "subject"})
+})
 public class Absence {
 
 	@Id

@@ -2,11 +2,15 @@ package com.academix.absence.service;
 
 import com.academix.absence.dto.AbsenceRequest;
 import com.academix.absence.dto.AbsenceResponse;
+import com.academix.absence.dto.BulkAbsenceRequest;
 import com.academix.absence.dto.JustifyAbsenceRequest;
 import com.academix.absence.dto.ValidateAbsenceRequest;
 import com.academix.absence.entity.Absence;
 import com.academix.absence.entity.AbsenceStatus;
 import com.academix.absence.repository.AbsenceRepository;
+import com.academix.auth.entity.User;
+import com.academix.auth.repository.UserRepository;
+import com.academix.classroom.repository.TeacherAssignmentRepository;
 import com.academix.student.entity.Student;
 import com.academix.student.repository.StudentRepository;
 import org.springframework.http.HttpStatus;
@@ -24,10 +28,15 @@ public class AbsenceService {
 
 	private final AbsenceRepository absenceRepository;
 	private final StudentRepository studentRepository;
+	private final TeacherAssignmentRepository teacherAssignmentRepository;
+	private final UserRepository userRepository;
 
-	public AbsenceService(AbsenceRepository absenceRepository, StudentRepository studentRepository) {
+	public AbsenceService(AbsenceRepository absenceRepository, StudentRepository studentRepository,
+			TeacherAssignmentRepository teacherAssignmentRepository, UserRepository userRepository) {
 		this.absenceRepository = absenceRepository;
 		this.studentRepository = studentRepository;
+		this.teacherAssignmentRepository = teacherAssignmentRepository;
+		this.userRepository = userRepository;
 	}
 
 	@Transactional(readOnly = true)
@@ -45,16 +54,28 @@ public class AbsenceService {
 				.toList();
 	}
 
-	public AbsenceResponse create(AbsenceRequest request) {
-		requireAdministrationOrTeacher();
-		Absence absence = new Absence(findStudent(request.studentId()), request.subject().trim(), request.date(), normalizeOptional(request.comment()));
-		return toResponse(absenceRepository.save(absence));
+	public List<AbsenceResponse> createBulk(BulkAbsenceRequest request) {
+		requireAssignedTeacher(request.classId(), request.subject());
+		String subject = request.subject().trim();
+		List<Long> studentIds = request.absentStudentIds() == null ? List.of() : request.absentStudentIds();
+		List<Absence> created = studentIds.stream()
+				.filter(studentId -> !absenceRepository.existsByStudentIdAndDateAndSubjectIgnoreCase(studentId, request.date(), subject))
+				.map(studentId -> absenceRepository.save(new Absence(findStudent(studentId), subject, request.date(), null)))
+				.toList();
+		return created.stream().map(this::toResponse).toList();
 	}
 
 	public AbsenceResponse update(Long id, AbsenceRequest request) {
 		requireAdministrationOrTeacher();
 		Absence absence = findAbsence(id);
-		absence.setStudent(findStudent(request.studentId()));
+		Student student = findStudent(request.studentId());
+		if (!(student.getId().equals(absence.getStudent().getId())
+				&& absence.getDate().equals(request.date())
+				&& absence.getSubject().equalsIgnoreCase(request.subject().trim()))
+				&& absenceRepository.existsByStudentIdAndDateAndSubjectIgnoreCase(student.getId(), request.date(), request.subject().trim())) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "This student already has an absence recorded for that date and subject");
+		}
+		absence.setStudent(student);
 		absence.setSubject(request.subject().trim());
 		absence.setDate(request.date());
 		absence.setComment(normalizeOptional(request.comment()));
@@ -103,6 +124,15 @@ public class AbsenceService {
 	private Student currentStudent() {
 		return studentRepository.findByEmailIgnoreCase(currentUsername())
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Student profile not found"));
+	}
+
+	private User requireAssignedTeacher(Long classId, String subject) {
+		User teacher = userRepository.findByEmailIgnoreCase(currentUsername())
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required"));
+		if (!teacherAssignmentRepository.existsByTeacherIdAndSchoolClassIdAndSubjectIgnoreCase(teacher.getId(), classId, subject.trim())) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not assigned to this class for that subject");
+		}
+		return teacher;
 	}
 
 	private AbsenceResponse toResponse(Absence absence) {

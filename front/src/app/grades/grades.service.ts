@@ -23,9 +23,9 @@ export class GradesService {
     );
   }
 
-  create(payload: Record<string, unknown>): Observable<GradeResponse> {
-    return this.http.post<GradeResponse>('/api/grades', payload).pipe(
-      tap((grade) => this.gradesSignal.update((grades) => [grade, ...grades]))
+  createBulk(payload: Record<string, unknown>): Observable<GradeResponse[]> {
+    return this.http.post<GradeResponse[]>('/api/grades/bulk', payload).pipe(
+      tap((created) => this.gradesSignal.update((grades) => [...created, ...grades]))
     );
   }
 
@@ -40,6 +40,14 @@ export class GradesService {
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`/api/grades/${id}`).pipe(
       tap(() => this.gradesSignal.update((grades) => grades.filter((item) => item.id !== id)))
+    );
+  }
+
+  validate(id: number, approved: boolean, comment: string): Observable<GradeResponse> {
+    return this.http.put<GradeResponse>(`/api/grades/${id}/validate`, { approved, comment: comment || null }).pipe(
+      tap((updated) => this.gradesSignal.update((grades) =>
+        grades.map((item) => item.id === updated.id ? updated : item)
+      ))
     );
   }
 }

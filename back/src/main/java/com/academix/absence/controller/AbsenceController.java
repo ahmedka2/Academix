@@ -2,6 +2,7 @@ package com.academix.absence.controller;
 
 import com.academix.absence.dto.AbsenceRequest;
 import com.academix.absence.dto.AbsenceResponse;
+import com.academix.absence.dto.BulkAbsenceRequest;
 import com.academix.absence.dto.JustifyAbsenceRequest;
 import com.academix.absence.dto.ValidateAbsenceRequest;
 import com.academix.absence.service.AbsenceService;
@@ -39,9 +40,9 @@ public class AbsenceController {
 		return ResponseEntity.ok(absenceService.getMine());
 	}
 
-	@PostMapping
-	public ResponseEntity<AbsenceResponse> create(@Valid @RequestBody AbsenceRequest request) {
-		return ResponseEntity.status(HttpStatus.CREATED).body(absenceService.create(request));
+	@PostMapping("/bulk")
+	public ResponseEntity<List<AbsenceResponse>> createBulk(@Valid @RequestBody BulkAbsenceRequest request) {
+		return ResponseEntity.status(HttpStatus.CREATED).body(absenceService.createBulk(request));
 	}
 
 	@PutMapping("/{id}")

@@ -17,8 +17,35 @@
   </article>
 </section>
 
-<section class="profile-grid">
-  <article class="panel profile-panel">
+<nav class="profile-tabs" role="tablist">
+  <button type="button" role="tab" [class.active]="activeTab() === 'profile'" (click)="activeTab.set('profile')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+    Profile
+  </button>
+  <button type="button" role="tab" [class.active]="activeTab() === 'grades'" (click)="activeTab.set('grades')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1.66 2.69 3 6 3s6-1.34 6-3v-5"/></svg>
+    Grades <span class="tab-count" *ngIf="grades().length">{{ grades().length }}</span>
+  </button>
+  <button type="button" role="tab" [class.active]="activeTab() === 'absences'" (click)="activeTab.set('absences')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+    Absences <span class="tab-count" *ngIf="absences().length" [class.tab-count-warning]="unjustifiedCount">{{ absences().length }}</span>
+  </button>
+  <button type="button" role="tab" [class.active]="activeTab() === 'invoices'" (click)="activeTab.set('invoices')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l3 3v17l-3-2-3 2-3-2-3 2V2Z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>
+    Invoices <span class="tab-count" *ngIf="invoices().length">{{ invoices().length }}</span>
+  </button>
+  <button type="button" role="tab" [class.active]="activeTab() === 'documents'" (click)="activeTab.set('documents')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>
+    Documents <span class="tab-count" *ngIf="documents().length">{{ documents().length }}</span>
+  </button>
+  <button type="button" role="tab" [class.active]="activeTab() === 'stage'" (click)="activeTab.set('stage')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="m9 15 2 2 4-4"/></svg>
+    Internships
+  </button>
+</nav>
+
+<section class="profile-panels">
+  <article class="panel profile-panel" *ngIf="activeTab() === 'profile'">
     <div class="panel-head">
       <div>
         <p class="eyebrow">Identity</p>
@@ -28,42 +55,56 @@
       <button type="button" class="ghost" [disabled]="loadingProfile" (click)="loadProfile()">{{ loadingProfile ? 'Loading…' : 'Refresh' }}</button>
     </div>
 
-    <div class="profile-summary" *ngIf="profile; else emptyProfile">
-      <div class="profile-name">
-        <div class="photo-wrap">
-          <img *ngIf="profile.photoUrl; else initials" [src]="profile.photoUrl" [alt]="profile.firstName + ' ' + profile.lastName" class="profile-photo">
-          <ng-template #initials><span class="profile-avatar">{{ profile.firstName[0] }}{{ profile.lastName[0] }}</span></ng-template>
-          <label class="photo-upload" [class.uploading]="uploadingPhoto" title="Change photo">
-            <input type="file" accept="image/jpeg,image/png,image/webp" [disabled]="uploadingPhoto" (change)="onPhotoSelected($event)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/></svg>
-          </label>
+    <div class="id-layout" *ngIf="profile; else emptyProfile">
+      <div class="id-card">
+        <p class="id-card-kicker">Academix · Student Record</p>
+        <div class="id-card-photo-row">
+          <div class="id-photo-frame">
+            <img *ngIf="profile.photoUrl; else initials" [src]="profile.photoUrl" [alt]="profile.firstName + ' ' + profile.lastName" class="id-photo">
+            <ng-template #initials><span class="id-photo-initials">{{ profile.firstName[0] }}{{ profile.lastName[0] }}</span></ng-template>
+            <label class="photo-upload" [class.uploading]="uploadingPhoto" title="Change photo">
+              <input type="file" accept="image/jpeg,image/png,image/webp" [disabled]="uploadingPhoto" (change)="onPhotoSelected($event)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/></svg>
+            </label>
+          </div>
+          <div class="id-card-name">
+            <h3>{{ profile.firstName }} {{ profile.lastName }}</h3>
+            <span class="id-card-number">{{ profile.studentIdentifier }}</span>
+          </div>
         </div>
-        <div><h3>{{ profile.firstName }} {{ profile.lastName }}</h3><span class="id-pill">{{ profile.studentIdentifier }}</span></div>
+        <div class="id-barcode" aria-hidden="true">
+          <span *ngFor="let w of idBarcode" [style.width.px]="w"></span>
+        </div>
+        <dl class="id-card-fine-print">
+          <div><dt>Class</dt><dd>{{ profile.className || 'Unassigned' }}</dd></div>
+          <div><dt>Field of study</dt><dd>{{ profile.fieldOfStudy }}</dd></div>
+          <div><dt>CIN</dt><dd>{{ profile.cin }}</dd></div>
+        </dl>
       </div>
-      <dl class="profile-details">
-        <div><dt>CIN</dt><dd>{{ profile.cin }}</dd></div>
-        <div><dt>Field of study</dt><dd>{{ profile.fieldOfStudy }}</dd></div>
-        <div><dt>Class</dt><dd>{{ profile.className || 'Unassigned' }}</dd></div>
-        <div class="full-detail"><dt>Email</dt><dd>{{ profile.email }}</dd></div>
-        <div class="full-detail">
-          <dt>Phone</dt>
-          <dd *ngIf="!editingPhone" class="phone-view">{{ profile.phone || 'Not set' }} <button type="button" class="text-action" (click)="startEditingPhone()">Edit</button></dd>
-          <dd *ngIf="editingPhone" class="phone-edit">
-            <input [(ngModel)]="phoneDraft" name="phoneDraft" placeholder="e.g. +216 12 345 678">
-            <button type="button" class="ghost" (click)="cancelEditingPhone()">Cancel</button>
-            <button type="button" class="primary-button" [disabled]="savingPhone" (click)="savePhone()">{{ savingPhone ? 'Saving…' : 'Save' }}</button>
-          </dd>
-        </div>
-        <div class="full-detail" *ngIf="profile.address"><dt>Address</dt><dd>{{ profile.address }}</dd></div>
-      </dl>
+
+      <div class="contact-card">
+        <p class="eyebrow">Contact</p>
+        <dl>
+          <div class="full-detail"><dt>Email</dt><dd>{{ profile.email }}</dd></div>
+          <div class="full-detail">
+            <dt>Phone</dt>
+            <dd *ngIf="!editingPhone" class="phone-view">{{ profile.phone || 'Not set' }} <button type="button" class="text-action" (click)="startEditingPhone()">Edit</button></dd>
+            <dd *ngIf="editingPhone" class="phone-edit">
+              <input [(ngModel)]="phoneDraft" name="phoneDraft" placeholder="e.g. +216 12 345 678">
+              <button type="button" class="ghost" (click)="cancelEditingPhone()">Cancel</button>
+              <button type="button" class="primary-button" [disabled]="savingPhone" (click)="savePhone()">{{ savingPhone ? 'Saving…' : 'Save' }}</button>
+            </dd>
+          </div>
+          <div class="full-detail" *ngIf="profile.address"><dt>Address</dt><dd>{{ profile.address }}</dd></div>
+        </dl>
+      </div>
     </div>
     <ng-template #emptyProfile>
       <div class="empty"><strong>{{ loadingProfile ? 'Loading your profile…' : 'Profile unavailable' }}</strong><span>{{ loadingProfile ? 'Please wait a moment.' : 'Contact administration if this looks wrong.' }}</span></div>
     </ng-template>
   </article>
 
-  <div class="profile-secondary">
-    <section class="panel grades-panel">
+  <section class="panel grades-panel" *ngIf="activeTab() === 'grades'">
       <div class="panel-head">
         <div>
           <p class="eyebrow">Academics</p>
@@ -90,7 +131,7 @@
       </ng-template>
     </section>
 
-    <section class="panel absences-panel">
+    <section class="panel absences-panel" *ngIf="activeTab() === 'absences'">
       <div class="panel-head">
         <div>
           <p class="eyebrow">Attendance</p>
@@ -121,7 +162,7 @@
       </ng-template>
     </section>
 
-    <section class="panel invoices-panel">
+    <section class="panel invoices-panel" *ngIf="activeTab() === 'invoices'">
       <div class="panel-head">
         <div>
           <p class="eyebrow">Billing</p>
@@ -144,7 +185,61 @@
         <div class="empty"><strong>{{ loadingInvoices ? 'Loading your invoices…' : 'No invoices yet' }}</strong><span>{{ loadingInvoices ? 'Please wait a moment.' : 'Nothing has been billed to your account yet.' }}</span></div>
       </ng-template>
     </section>
-  </div>
+
+    <section class="panel documents-panel" *ngIf="activeTab() === 'documents'">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow">Registrar</p>
+          <h2>My documents <span class="count">{{ documents().length }}</span></h2>
+          <p>Attestations, certificates, and transcripts issued to you.</p>
+        </div>
+        <button type="button" class="ghost" [disabled]="loadingDocuments" (click)="loadDocuments()">{{ loadingDocuments ? 'Loading…' : 'Refresh' }}</button>
+      </div>
+
+      <div class="document-cards" *ngIf="documents().length; else emptyDocuments">
+        <article class="document-card" *ngFor="let document of documents()">
+          <div>
+            <strong class="subject-name">{{ documentTypeLabels[document.type] }}</strong>
+            <small>{{ document.academicYear }}{{ document.semester ? ' · ' + document.semester : '' }} · {{ document.generatedAt | date:'mediumDate' }}</small>
+          </div>
+          <button type="button" class="text-action" (click)="downloadDocument(document)">Download</button>
+        </article>
+      </div>
+      <ng-template #emptyDocuments>
+        <div class="empty"><strong>{{ loadingDocuments ? 'Loading your documents…' : 'No documents yet' }}</strong><span>{{ loadingDocuments ? 'Please wait a moment.' : 'Administration hasn\'t issued any documents for you yet.' }}</span></div>
+      </ng-template>
+    </section>
+
+    <section class="panel stage-documents-panel" *ngIf="activeTab() === 'stage'">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow">Internships</p>
+          <h2>My stage documents</h2>
+          <p>Upload your convention, rapport, attestation, and fiche d'encadrement.</p>
+        </div>
+        <button type="button" class="ghost" [disabled]="loadingStageDocuments" (click)="loadStageDocuments()">{{ loadingStageDocuments ? 'Loading…' : 'Refresh' }}</button>
+      </div>
+
+      <div class="stage-slot-list">
+        <article class="stage-slot" *ngFor="let type of stageDocumentTypes">
+          <div class="stage-slot-info">
+            <strong>{{ stageDocumentTypeLabels[type] }}</strong>
+            <ng-container *ngIf="stageDocumentFor(type) as doc; else notUploaded">
+              <span class="stamp" [class.stamp-good]="doc.status === 'APPROVED'" [class.stamp-bad]="doc.status === 'REJECTED'">{{ doc.status === 'PENDING' ? 'Pending review' : doc.status }}</span>
+              <p class="stage-slot-comment" *ngIf="doc.comment">{{ doc.comment }}</p>
+            </ng-container>
+            <ng-template #notUploaded><span class="stamp">Not uploaded</span></ng-template>
+          </div>
+          <div class="stage-slot-actions">
+            <button type="button" class="text-action" *ngIf="stageDocumentFor(type)" (click)="downloadStageDocument(stageDocumentFor(type)!)">Download</button>
+            <label class="ghost upload-label" [class.uploading]="uploadingStageType === type">
+              {{ uploadingStageType === type ? 'Uploading…' : (stageDocumentFor(type) ? 'Re-upload' : 'Upload') }}
+              <input type="file" accept="application/pdf,image/jpeg,image/png" [disabled]="uploadingStageType === type" (change)="onStageDocumentSelected(type, $event)">
+            </label>
+          </div>
+        </article>
+      </div>
+    </section>
 </section>
 
 <div class="modal-backdrop" *ngIf="justifyTarget">
@@ -155,7 +250,11 @@
     </div>
     <p>{{ justifyTarget.subject }} on {{ justifyTarget.date }}</p>
     <form (ngSubmit)="submitJustification()">
-      <label class="wide">Justification<textarea rows="4" [(ngModel)]="justificationText" name="justificationText" placeholder="Explain the reason for this absence"></textarea></label>
+      <label class="wide" [class.invalid]="attemptedJustify && !justificationText.trim()">
+        Justification
+        <textarea rows="4" [(ngModel)]="justificationText" name="justificationText" placeholder="Explain the reason for this absence"></textarea>
+        <small class="field-error" *ngIf="attemptedJustify && !justificationText.trim()">Enter a justification before submitting.</small>
+      </label>
       <div class="modal-actions wide">
         <button type="button" class="ghost" (click)="cancelJustifying()">Cancel</button>
         <button type="submit" class="primary-button">Submit for review</button>
