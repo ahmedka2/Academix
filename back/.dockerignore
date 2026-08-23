@@ -1,0 +1,7 @@
+target/
+.idea/
+.vscode/
+*.log
+.env
+documents-storage/
+stage-documents-storage/

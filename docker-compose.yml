@@ -1,0 +1,59 @@
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: academix
+      MYSQL_USER: ${MYSQL_USER:-academix}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-academix}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./back
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/academix?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-academix}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-academix}
+      JWT_SECRET: ${JWT_SECRET:-change-me-change-me-change-me-change-me-change-me-change-me}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
+      ADMIN_FULL_NAME: ${ADMIN_FULL_NAME:-Academix Admin}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@academix.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin12345}
+      INSTITUTION_NAME: ${INSTITUTION_NAME:-Académix}
+      INSTITUTION_ADDRESS: ${INSTITUTION_ADDRESS:-123 Avenue de l'Éducation, Tunis}
+      UPLOADS_DIR: /data/profile_picture
+      DOCUMENTS_DIR: /data/documents-storage
+      STAGE_DOCUMENTS_DIR: /data/stage-documents-storage
+    volumes:
+      - profile-pictures:/data/profile_picture
+      - documents-storage:/data/documents-storage
+      - stage-documents-storage:/data/stage-documents-storage
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build: ./front
+    restart: unless-stopped
+    depends_on:
+      - backend
+    volumes:
+      - profile-pictures:/usr/share/nginx/html/profile_picture
+    ports:
+      - "${FRONTEND_PORT:-4200}:80"
+
+volumes:
+  mysql-data:
+  profile-pictures:
+  documents-storage:
+  stage-documents-storage:
