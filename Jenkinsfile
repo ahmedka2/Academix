@@ -10,12 +10,18 @@ pipeline {
         stage('Backend: build & test') {
             steps {
                 dir('back') {
-                    sh 'mvn -B clean package'
+                    // 'verify' (not 'package') so the jacoco:report execution runs and
+                    // writes target/site/jacoco/jacoco.xml for the Sonar stage to import.
+                    sh 'mvn -B clean verify'
                 }
             }
             post {
                 always {
                     junit testResults: 'back/target/surefire-reports/*.xml', allowEmptyResults: true
+                    // Optional coverage trend graph in Jenkins itself. Requires the
+                    // "Coverage Plugin" to be installed on the controller - uncomment
+                    // once it is, otherwise the build fails on an unknown step.
+                    // recordCoverage(tools: [[parser: 'JACOCO', pattern: 'back/target/site/jacoco/jacoco.xml']])
                 }
             }
         }

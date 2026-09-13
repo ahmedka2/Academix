@@ -1,0 +1,28 @@
+# Test-only config: overrides src/main/resources/application.yml on the test classpath
+# so no test ever needs a running MySQL instance.
+spring:
+  datasource:
+    url: jdbc:h2:mem:academix;MODE=MySQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: create-drop
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+
+security:
+  jwt:
+    secret: test-secret-test-secret-test-secret-test-secret-test-secret
+    expiration-ms: 3600000
+
+app:
+  seed:
+    admin:
+      full-name: Test Admin
+      email: admin@test.local
+      password: test12345
