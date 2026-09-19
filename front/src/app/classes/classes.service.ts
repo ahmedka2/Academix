@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
-import { Observable, forkJoin, map, of, switchMap, tap } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 
 import { StudentResponse } from '../students/student.model';
 import { ClassResponse, MyClassAssignmentResponse, TeacherAssignmentResponse } from './class.model';
@@ -14,9 +14,6 @@ export class ClassesService {
 
   private readonly myClassesSignal = signal<MyClassAssignmentResponse[]>([]);
   readonly myClasses = this.myClassesSignal.asReadonly();
-
-  private readonly myRosterSignal = signal<StudentResponse[]>([]);
-  readonly myRoster = this.myRosterSignal.asReadonly();
 
   load(): Observable<ClassResponse[]> {
     return this.http.get<ClassResponse[]>('/api/classes').pipe(
@@ -32,22 +29,6 @@ export class ClassesService {
 
   getRoster(classId: number): Observable<StudentResponse[]> {
     return this.http.get<StudentResponse[]>(`/api/classes/${classId}/students`);
-  }
-
-  /** The union of every roster across a teacher's own class assignments, deduped by student. */
-  loadMyRoster(): Observable<StudentResponse[]> {
-    return this.loadMine().pipe(
-      switchMap((assignments) => {
-        const uniqueClassIds = [...new Set(assignments.map((assignment) => assignment.classId))];
-        return uniqueClassIds.length ? forkJoin(uniqueClassIds.map((id) => this.getRoster(id))) : of([]);
-      }),
-      map((rosters) => {
-        const byId = new Map<number, StudentResponse>();
-        rosters.flat().forEach((student) => byId.set(student.id, student));
-        return [...byId.values()];
-      }),
-      tap((roster) => this.myRosterSignal.set(roster))
-    );
   }
 
   create(payload: Record<string, unknown>): Observable<ClassResponse> {

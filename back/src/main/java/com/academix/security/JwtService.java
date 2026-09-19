@@ -33,8 +33,7 @@ public class JwtService {
 				.subject(user.getEmail())
 				.claims(Map.of(
 						"userId", user.getId(),
-						"role", user.getRole().name(),
-						"roleCode", user.getRole().getCode()
+						"role", user.getRole().name()
 				))
 				.issuedAt(Date.from(now))
 				.expiration(Date.from(now.plusMillis(expirationMs)))

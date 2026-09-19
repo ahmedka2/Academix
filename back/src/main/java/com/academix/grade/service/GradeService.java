@@ -3,7 +3,6 @@ package com.academix.grade.service;
 import com.academix.auth.entity.User;
 import com.academix.auth.repository.UserRepository;
 import com.academix.classroom.repository.TeacherAssignmentRepository;
-import com.academix.grade.dto.BulkGradeEntry;
 import com.academix.grade.dto.BulkGradeRequest;
 import com.academix.grade.dto.GradeRequest;
 import com.academix.grade.dto.GradeResponse;

@@ -1,8 +1,9 @@
 package com.academix.auth.entity;
 
 import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -32,7 +33,7 @@ public class User {
 	@Column(nullable = false, length = 255)
 	private String passwordHash;
 
-	@Convert(converter = RoleConverter.class)
+	@Enumerated(EnumType.ORDINAL)
 	@Column(nullable = false)
 	private Role role = Role.STUDENT;
 
